@@ -1,0 +1,146 @@
+---
+title: "The Ranked probability Score"
+author: "GS Verhoeven"
+output:
+  pdf_document: default
+toc: true
+toc_depth: 3
+
+bibliography: Soccer.bib
+---
+  
+```{r setup, include=FALSE} 
+rm(list=ls())
+knitr::opts_chunk$set(cache=TRUE) 
+```
+# Summary
+
+Check RPS code against published outcomes (unit testing).
+
+# Load packages
+
+```{r, results='hide', message=FALSE, warning=FALSE}
+library(data.table)
+library(ggplot2)
+library(rstan)
+library(stringr)
+
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+```
+
+```{r}
+source("code/ppc_coverage_plot.R")
+source("code/MakeTimeSeriesPlot.R")
+source("code/Create_model_data_for_TS2.R")
+source("code/addTeamIds.R")
+source("code/create_league_table.R")
+source("code/MakeEPLPlotAbility.R")
+source("code/games_predicted_vs_actual_intervals.R")
+source("code/ppc_coverage_plot.R")
+source("code/calc_rps_scores.R")
+source("code/odds_to_probability.R")
+source("code/ReadfitsandCalculateRPS.R")
+source("code/FitOneStepAhead.R")
+
+
+toggle_static <- 0
+```
+
+
+```{r}
+NL_ALL <- readRDS( "data/NL_ALL.rds")
+
+model_data <- Create_model_data_for_TS2(NL_ALL[season %in% c(17)], 
+                                        NL_ALL[season == 16], 
+                                        NL_ALL[season %in% c(17)][1:2,])
+```
+
+
+# In-sample prediction accuracy using RPS loss function
+
+To be able to compare different models on a relative as well as absolute scale ,we calculate the RPS / brier score for each match in the sample.
+
+To compare model predictive performance we use the Rank Probability Score (RPS), which is the mean-squared error for a multi-category forecast. Here we consider three outcomes, win, draw of loss.
+
+Try a few alternative prediction strategies.
+All wins, all draws, equal probs, in sample means (so means of actual_scorez).
+This means that the long run average probability of a win, draw of loss is used to predict the outcome.
+This automatically incorporates the home advantage, but no team strength.
+
+```{r}
+actual_scorez <- Convert_actual_to_win_draw_loss_vector(model_data$goal_difference)
+
+# always draw
+pred_probz <- data.table(game_id = 1:model_data$n_games, 
+                         p_win = 0, 
+                         p_draw = 1,
+                         p_loss = 0)
+calculate_arps(pred_probz[,.( p_win, p_draw, p_loss)], actual_scorez[,.(act_win, act_draw, act_loss)])
+
+# always win
+pred_probz <- data.table(game_id = 1:model_data$n_games, 
+                         p_win = 1, 
+                         p_draw = 0,
+                         p_loss = 0)
+calculate_arps(pred_probz[,.( p_win, p_draw, p_loss)], actual_scorez[,.(act_win, act_draw, act_loss)])
+
+# equal probs
+pred_probz <- data.table(game_id = 1:model_data$n_games, 
+                         p_win = 1/3, 
+                         p_draw = 1/3,
+                         p_loss = 1/3)
+calculate_arps(pred_probz[,.( p_win, p_draw, p_loss)], actual_scorez[,.(act_win, act_draw, act_loss)])
+
+# average over all matches (this takes into account the home advantage)
+pred_probz <- data.table(game_id = 1:model_data$n_games, 
+                         p_win = mean(actual_scorez$act_win), 
+                         p_draw = mean(actual_scorez$act_draw),
+                         p_loss = mean(actual_scorez$act_loss))
+calculate_arps(pred_probz[,.( p_win, p_draw, p_loss)], actual_scorez[,.(act_win, act_draw, act_loss)])
+```
+
+```{r}
+# Unit test: calculate Constantinou & Fenton 2012 examples
+predictions <- rbind(c(1, 0, 0),
+                     c(0.9, 0.1, 0),
+                     c(0.8, 0.1, 0.1),
+                     c(0.5, 0.25, 0.25),
+                     
+                     c(0.35 ,0.3 ,0.35), # this one is better
+                     c( 0.6, 0.3, 0.1), # or not?
+                     
+                     c(0.6 ,0.25 ,0.15),
+                     c( 0.6, 0.15, 0.25),
+                     c( 0.57,0.33,0.1),
+                     c(0.6 ,0.2 ,0.2),
+                     c(0.4, 0.2, 0.4),
+                     c(1/3, 1/3, 1/3),
+                     c(1/3, 1/3, 1/3)
+                     
+)
+
+observed <- rbind(c(1, 0, 0),
+                  c(1, 0, 0),
+                  c(1, 0, 0),
+                  c(1, 0, 0),
+                  
+                  c(0,1,0),
+                  c(0,1,0),
+                  
+                  c(1,0,0),
+                  c(1,0,0),
+                  c(1,0,0),
+                  c(1,0,0) ,
+                  c(1, 0, 0),
+                  c(0, 1, 0),
+                  c(1, 0, 0)
+)
+
+
+calculate_rps(predictions, observed)
+
+```
+According their paper, the calculations should give c(0, 0.005, 0.025, 0.1562, 0.1225, 0.1850, 0.09125, 0.11125, 0.09745, 0.1)
+So we conclude we have implemented the Rank probability score properly.
+

@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.pdf
+*.log
+*.gz
+*.pptx
+*.db
+*.docx
+FITS*
