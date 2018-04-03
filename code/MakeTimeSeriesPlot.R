@@ -1,15 +1,11 @@
-MakeTimeSeriesPlot <- function(a_sims, title, id_lut, flip_sign = F, subset = NA) {
-  ma_sims <- data.table(melt(a_sims))
-  setnames(ma_sims, "Var2", "nweek")
-  setnames(ma_sims, "Var3", "nteam")
-  
+MakeTimeSeriesPlot <- function(ma_sims, title, id_lut, flip_sign = F, subset = NA) {
   sign <- 1
   if(flip_sign) sign <- -1
   
   res <- ma_sims[, .(Q5 = sign * quantile(value, 0.05),
                      Q50 = sign * quantile(value, 0.5),
                      Q95 = sign * quantile(value, 0.95)), .(nweek, nteam)]
-  
+  rm(ma_sims)
   setkey(res, nteam)
   setkey(id_lut, home_team_id)
   

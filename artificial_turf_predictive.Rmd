@@ -337,8 +337,10 @@ if(fullrun) {
   saveRDS(sd_67, "FITS\\sd_67_full.rds")
 } else { sd_67 <- readRDS("FITS\\sd_67_full.rds")}
 
-sims <- extract(sd_67)
-score_diff_rep <- sims$goal_difference_rep
+score_diff_rep <- extract(sd_67, "goal_difference_rep")
+
+# save memory
+rm(sd_67)
 
 gp <- games_predicted_vs_actual_intervals_simple(model_data$goal_difference, score_diff_rep, diff_limits = c(-8,8)) + theme_light()
 gp
@@ -350,21 +352,49 @@ As expected, the multilevel model leads to smoothed ability estimates.
 
 
 
-```{r, echo = FALSE,  fig.width=5, fig.height=6, fig.cap="Estimated team abilities: effect of partial pooling of the team-specific random walk variance. The model was fitted on the dataset used to predict the final round off the 4th season (2016/2017)."}
-epl_np_67 <- readRDS("c:/testversleutel/FITS/fit_epl_np_67.rds")
-sims <- extract(epl_np_67)
-a_sims <- sims$a
+```{r, echo = FALSE,  fig.width=5, fig.height=6, fig.cap="Estimated team abilities: effect of partial pooling of the team-specific random walk variance. The model was fitted on the dataset used to predict the final round of the 4th season (2016/2017)."}
+fullrun <- 0
+if(fullrun) {
+  epl_np_67 <- readRDS("FITS/fit_epl_np_67.rds")
+  a_sims <- extract(epl_np_67, "a")
+    library(arrayhelpers)
+  # a_sims is 3000 x 135 x 23 teams = 9M numbers
+  ma_sims <- array2df(a_sims$a, levels = list(NA, NA, NA), label.x = "value")
+  
+  ma_sims <- as.data.table(ma_sims)
+  
+  setnames(ma_sims, 3, "nweek")
+  setnames(ma_sims, 4, "nteam")
+  
+  saveRDS(ma_sims, "output/a_sims_np.rds")
+} else {ma_sims <- readRDS("output/a_sims_np.rds")}
+
 id_lut <- model_data$id_lut
 
-gp1 <- MakeTimeSeriesPlot(a_sims, title = "T-distribution base model: no pooling", id_lut, subset = c("Ajax", "Feyenoord")) + ylim(c(-3,3)) + theme_bw()
+gp1 <- MakeTimeSeriesPlot(ma_sims, title = "T-distribution base model: no pooling", id_lut, subset = c("Ajax", "Feyenoord")) + ylim(c(-3,3)) + theme_bw()
 
-epl_67 <- readRDS("c:/testversleutel/FITS/fitX_67.rds")
-sims <- extract(epl_67)
-a_sims <- sims$a
+rm(ma_sims)
+
+fullrun <- 0
+if(fullrun) {
+  epl_67 <- readRDS("FITS/fitX_67.rds")
+  a_sims <- extract(epl_67, "a")
+   # a_sims is 3000 x 135 x 23 teams = 9M numbers
+  ma_sims <- array2df(a_sims$a, levels = list(NA, NA, NA), label.x = "value")
+  
+  ma_sims <- as.data.table(ma_sims)
+  
+  setnames(ma_sims, 3, "nweek")
+  setnames(ma_sims, 4, "nteam")
+  
+  saveRDS(ma_sims, "output/a_sims_p.rds")
+} else {ma_sims <- readRDS("output/a_sims_p.rds")}
+
 id_lut <- model_data$id_lut
 
+gp2 <- MakeTimeSeriesPlot(ma_sims, title = "T-distribution base model: partial pooling", id_lut, subset = c("Ajax", "Feyenoord")) + ylim(c(-3,3)) + theme_bw()
 
-gp2 <- MakeTimeSeriesPlot(a_sims, title = "T-distribution base model: partial pooling", id_lut, subset = c("Ajax", "Feyenoord")) + ylim(c(-3,3)) + theme_bw()
+rm(ma_sims)
 
 plot_grid(gp1, gp2, labels = c("A", "B"), nrow = 2, align = "v")
 ```
@@ -464,8 +494,8 @@ This paper analyses the possibility of an artificial turf advantage in the Dutch
 
 # License
 
-Code Â© 2018, Gertjan Verhoeven, licensed under GPL 3.
-Text Â© 2018, Gertjan Verhoeven, licensed under CC-BY-NC 4.0.
+Code © 2018, Gertjan Verhoeven, licensed under GPL 3.
+Text © 2018, Gertjan Verhoeven, licensed under CC-BY-NC 4.0.
 
 Cite using Zenodo: DOI
 
