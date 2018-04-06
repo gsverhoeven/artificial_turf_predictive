@@ -24,6 +24,7 @@ library(ggplot2)
 library(rstan)
 library(stringr)
 library(cowplot)
+library(forecast)
 
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
@@ -389,7 +390,6 @@ result <- rbind(result, result_Equal_prob)
 We add the DM statistic using various reference models.
 
 ```{r}
-library(forecast)
 source("code/AddDMTest.R")
 # bet365, beste odds
 result <- AddDMtest(result, NL_ALL_PRED, ref_model_nr = 12)

@@ -1,6 +1,15 @@
 rm(list = ls())
 
-library(rmarkdown)
+# needed R-packages
+require(rmarkdown)
+require(knitr)
+require(data.table)
+require(ggplot2)
+require(cowplot)
+require(rstan)
+require(stringr)
+require(forecast)
+
 
 # compile all .rmd files in the required order
 

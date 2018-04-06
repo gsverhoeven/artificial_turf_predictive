@@ -547,7 +547,7 @@ gp1 <- ggplot(res_time[model_nr %in% c(1,2),], aes(x = (round - min_round), y = 
 
 gp2 <- ggplot(tmp, aes(x = (round - min_round), y = diff)) +
   geom_point() + geom_line() + geom_smooth() + xlab("Round number") + ylab("delta RPS") + ylim(c(-0.02, 0.02))
-library(cowplot)
+
 plot_grid(gp1, gp2, labels = c("A", "B"), nrow = 2, align = "v")
 ```
 
@@ -568,7 +568,7 @@ gp1 <- ggplot(res_time[model_nr %in% c(1,2),], aes(x = (round - min_round), y = 
 
 gp2 <- ggplot(tmp, aes(x = (round - min_round), y = diff)) +
   geom_point() + geom_line() + geom_smooth() + xlab("Round number") + ylab("delta RPS") + ylim(c(-0.02, 0.02))
-library(cowplot)
+
 plot_grid(gp1, gp2, labels = c("A", "B"), nrow = 2, align = "v")
 ```
 
@@ -589,7 +589,7 @@ gp1 <- ggplot(res_time[model_nr %in% c(1,2),], aes(x = (round - min_round), y = 
 
 gp2 <- ggplot(tmp, aes(x = (round - min_round), y = diff)) +
   geom_point() + geom_line() + geom_smooth() + xlab("Round number") + ylab("delta RPS") + ylim(c(-0.05, 0.05)) + geom_vline(xintercept = 34)
-library(cowplot)
+
 plot_grid(gp1, gp2, labels = c("A", "B"), nrow = 2, align = "v")
 ```
 
