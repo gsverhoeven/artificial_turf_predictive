@@ -54,37 +54,8 @@ source("code/ReadfitsandCalculateRPS.R")
 ```
 
 ```{r load_data, results = 'hide', message = FALSE}
-NL_ALL <- readRDS("data/NL Eredivisie 2000-2018.rds")
-
-# set 2017/2018 season apart
-NL_17 <- NL_ALL[Date > as.Date("2017-07-01")]
-
-NL_ALL <- NL_ALL[Date < as.Date("2017-07-01")]
-setkey(NL_ALL, Date)
-
-# add round and season
-nrounds <- nrow(NL_ALL)/9
-nseasons <- nrow(NL_ALL)/(9*34)
-NL_ALL <- NL_ALL[, round := rep(1:nrounds, each = 9)]
-NL_ALL <- NL_ALL[, season := rep(1:nseasons, each = 34*9)]
-
-# prep 2017/2018 separately
-setkey(NL_17, Date)
-nrounds <- ceiling(nrow(NL_17)/9)
-start_nr_round <- max(NL_ALL$round)+1
-
-round_vec <- rep(start_nr_round:(start_nr_round + nrounds), each = 9)
-NL_17 <- NL_17[, round := round_vec[1:nrow(NL_17)]]
-NL_17 <- NL_17[, season := 18]
-
-# add to NL_ALL
-NL_ALL <- rbind(NL_ALL, NL_17)
-
-setkey(NL_ALL, Date)
-
-NL_ALL <- NL_ALL[, row_id := 1:nrow(NL_ALL)]
+NL_ALL <- readRDS("output/NL_ALL.rds")
 ```
-
 
 # Introduction
 
@@ -98,10 +69,6 @@ res <- NL_ALL[, .(perc_art_turf_advantage = mean(art_turf_advantage),
                   N = .N - sum(art_turf)), .(season)]
 
 mres <- melt(res, id.vars = c("season"))
-# ggplot(res[season < 18], aes(x = 1999+season, y = 100*perc_art_turf_advantage)) + 
-#   geom_point() + ylim(0, 105) + geom_line() +
-#   geom_point(aes(y = 100*perc_art_turf), col = "red") + geom_line(aes(y = 100*perc_art_turf), col = "red") + geom_vline(xintercept = 2012.5) +
-#   geom_vline(xintercept = 2016.5) + xlab("Season starting year") + ylab("% matches on artificial turf")
 
 ggplot(mres[variable %in% c("N_ata", "N_at", "N") & season < 18,], aes(x = season +1999, y = value, fill = variable)) + 
   geom_col(position = position_stack(reverse = TRUE), width = 0.5) + 
@@ -234,22 +201,21 @@ All scripts for this paper, including the paper itself will become available on 
 Our goal is to compare various models on out-of-sample predictive accuracy (forecasting). The motivation for our approach is that out-of-sample evidence for the artificial turf advantage is more convincing than in-sample evidence. For this approach, we face a trade-off in the choice which data we use to estimate the parameters ("in-sample"), and which data to use for out-of-sample prediction. 
 
 ```{r echo = FALSE}
-result_by_model <- readRDS("output/20180322 average RPS by model.rds")
-tidy_coef_res <- readRDS("output/tidy_coef_res.RDS")
+result_by_model <- readRDS("output/20180406 average RPS by model.rds")
 
+tidy_coef_res <- readRDS("output/tidy_coef_res.RDS")
 # rename variable for plotting
 tidy_coef_res <- tidy_coef_res[L1 == "b_home", L1 := "home_advantage"]
+
+NL_ALL_PRED <- readRDS("Output/20180406 NL_ALL_PRED_w_odds.rds")
+
+#tidy_rhat_neff_res <- readRDS("output/tidy_rhat_neff_res.rds")
 
 # model checking
 res <- readRDS("output/res_match_type.rds")
 res_upper_lower <- readRDS("output/res_upper_lower.RDS")
-res_upper_lower <- res_upper_lower[, ul_type_name := "Upper / Upper"]
-res_upper_lower <- res_upper_lower[upper_lower_type == 1, ul_type_name := "Upper / Lower"]
-res_upper_lower <- res_upper_lower[upper_lower_type == 0, ul_type_name := "Lower / Lower"]
-
-res_upper_lower_at <- readRDS("output/res_upper_lower_at.RDS")
+#res_upper_lower_at <- readRDS("output/res_upper_lower_at.RDS")
 res_time <- readRDS("output/res_time.RDS")
-NL_ALL_PRED <- readRDS("Output/20180313 NL_ALL_PRED_w_odds.rds")
 ```
 
 The artificial turf advantage effect was reported using data from the three most recent complete seasons (2014/2015 up to 2016/2017) [@van_ours_artificial_2017]. Ideally, we would like to forecast match outcomes for these three seasons. However, we also need data to estimate the parameters, and to estimate the artficial turf advantage, this requires sufficient in-sample matches that satisfy the ATA conditions. Therefore, we decided to use the last four seasons of data (see also Figure 1), and decide (somewhat arbitrarily) to use two seasons worth of data (612 matches) to estimate the parameters, and use an expanding window to obtain one-step-ahead forecasts for the remaining two seasons (612 matches). 
@@ -353,7 +319,7 @@ As expected, the multilevel model leads to smoothed ability estimates.
 
 
 ```{r, echo = FALSE,  fig.width=5, fig.height=6, fig.cap="Estimated team abilities: effect of partial pooling of the team-specific random walk variance. The model was fitted on the dataset used to predict the final round of the 4th season (2016/2017)."}
-fullrun <- 0
+fullrun <- 1
 if(fullrun) {
   epl_np_67 <- readRDS("FITS/fit_epl_np_67.rds")
   a_sims <- extract(epl_np_67, "a")
@@ -375,7 +341,7 @@ gp1 <- MakeTimeSeriesPlot(ma_sims, title = "T-distribution base model: no poolin
 
 rm(ma_sims)
 
-fullrun <- 0
+fullrun <- 1
 if(fullrun) {
   epl_67 <- readRDS("FITS/fitX_67.rds")
   a_sims <- extract(epl_67, "a")
@@ -494,8 +460,8 @@ This paper analyses the possibility of an artificial turf advantage in the Dutch
 
 # License
 
-Code © 2018, Gertjan Verhoeven, licensed under GPL 3.
-Text © 2018, Gertjan Verhoeven, licensed under CC-BY-NC 4.0.
+Code ? 2018, Gertjan Verhoeven, licensed under GPL 3.
+Text ? 2018, Gertjan Verhoeven, licensed under CC-BY-NC 4.0.
 
 Cite using Zenodo: DOI
 
