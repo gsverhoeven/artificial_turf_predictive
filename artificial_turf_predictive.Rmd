@@ -89,7 +89,7 @@ Given the large point estimate (even larger than typical reported values for the
 
 To test this hypothesis, a predictive model is needed that uses a delineated information set as a basis for its predictions, to which information on the playing surface can be added. As the Dutch artificial turf advantage finding [@van_ours_artificial_2017] was based on analysis of historical match result data, we restrict our analysis to this dataset as well (available on e.g. \url{http://www.football-data.co.uk}). This rules out more refined predictive models based on e.g. within match shot attempts (expected goals) or models that incorporate information on individual players (abilities, injuries etc). This also rules out using Bookmaker odds as predictions, since we do not known what information has been incorporated in them.
 
-We surveyed the literature on probabilitistic modeling of football outcomes to identify predictive models that appear to perform well on historic match outcomes. We setttle on two variants that model the goal difference of a match using latent parameters for team strength. The outcome of a match in terms of Win, Draw or Loss can be directly derived from the predicted goal difference. Both variants are dynamic, i.e. they allow the team strengths to vary over time. They differ in the distribution that is assumed for the goal differences: The first variant assumes a Poisson difference distribution, also known as the Skellam distribution [@skellam_frequency_1946, @karlis_bayesian_2009-1, @koopman_dynamic_2014-1]. The second variant assumes a $t$-distribution, that allows for long tails and includes the normal distribution as a special case [@kharratzadeh_hierarchical_2017]. Note that the Skellam distribution is the difference of two independent Poisson models and is therefore a discrete distribution, whereas the $t$-distribution is a  continuous distribution.
+We surveyed the literature on probabilitistic modeling of football outcomes to identify predictive models that appear to perform well on historic match outcomes. We setttle on two variants that model the goal difference of a match using latent parameters for team strength. The outcome of a match in terms of Win, Draw or Loss can be directly derived from the predicted goal difference. Both variants are dynamic, i.e. they allow the team strengths to vary over time. They differ in the distribution that is assumed for the goal differences: The first variant assumes a Poisson difference distribution, also known as the Skellam distribution [@skellam_frequency_1946, @karlis_bayesian_2009-1, @lit_time-varying_2016]. The second variant assumes a $t$-distribution, that allows for long tails and includes the normal distribution as a special case [@kharratzadeh_hierarchical_2017]. Note that the Skellam distribution is the difference of two independent Poisson models and is therefore a discrete distribution, whereas the $t$-distribution is a  continuous distribution.
 
 We subsequently expand these two probabilistic model variants with an additional dummy variable that equals one if the match satifies the two conditions for the additional home advantage due to artificial turf. This requires a) that the match is played on artificial turf, and b) that the away team plays its home matches on natural grass. 
 
@@ -106,9 +106,9 @@ Using statistical models to predict the result of football matches has a long tr
 After reviewing the literature, we conclude that must-haves for a competitive parametric football model are:
 
 1. Inclusion of the regular home advantage [@pollard_home_2008]
-2. Allowance for time-varying team abilities [@koopman_dynamic_2014-1]
+2. Allowance for time-varying team abilities [@lit_time-varying_2016]
 3. Adressing the correlation between goals made by the home and the away team [@koopman_dynamic_2015-1]
-4. Partial pooling of the variance of the team ability time evolution [@koopman_dynamic_2014-1, @kharratzadeh_hierarchical_2017]
+4. Partial pooling of the variance of the team ability time evolution [@lit_time-varying_2016, @kharratzadeh_hierarchical_2017]
 
 The first two points are described in more detail in the next section, where we present the model variants used in this paper.
 
@@ -116,7 +116,7 @@ Regarding the third point, this has been typically adressed in the literature in
 
 An alternative approach, and the one we adopt here, is to take the difference of the pair of goals for each match, and model the score difference. For the distribution of score differences, we consider both a Poisson difference (or Skellam) distribution [@karlis_bayesian_2009-1, @koopman_dynamic_2015-1]\footnote{ Both the difference of two independent Poisson distributions, as well as the difference between two Bivariate Poisson counts with correlation $\gamma$ is distributed as a Skellam distribution, because the correlation term cancels out by differencing (Koopman \& Lit 2014)}, as well as a $t$-distribution. It has been shown by [@koopman_forecasting_2017] that both approaches (modeling the score or the score difference) give very similar predictive accurracy for the outcome in terms of Win, Draw, Loss.
 
-Regarding the fourth and last point: Team strength is expected to change even within a single season for various reasons (e.g. players come and go, get injured, learning effects). In addition, because of the relatively low amount of goals made in each match, a single match outcome in terms of goal difference does not provide us with a strong signal on relative team ability. Estimating team-specific time dynamics (No pooling) might lead to overly noisy, volatile team abilities. Estimating equal time dynamics for all teams (complete pooling) is one way to cope with this situation. However, [@koopman_dynamic_2014-1] found that higher ranking teams having more stable abilities compared to lower ranking teams, and that this distinction improves model fit noticably. An attractive alternative is to use partial pooling (i.e. multilevel / hierarchical modelling) for the time dynamics, which estimates the amount of pooling from the data [@greenland_principles_2000]. We therefore adopt the multilevel variance model of Milad Kharratzadeh [@kharratzadeh_hierarchical_2017]\footnote{The paper of Milad Kharratzadeh has been peer reviewed and is fully reproducible available at \url{https://github.com/stan-dev/stancon_talks/tree/master/2017/Contributed-Talks/02_kharratzadeh}. For the Skellam model, The Stan code of Ben Torvaney of the Karlis \& Ntzoufras static Skellam model on GitHub (https://github.com/Torvaney/soccerstan) provided a starting point. Combining these two sources led to a dynamic multilevel Skellam model, that shares many similarities (apart from the multilevel aspect) with the dynamic Skellam model of Koopman \& Lit.} for both model variants. 
+Regarding the fourth and last point: Team strength is expected to change even within a single season for various reasons (e.g. players come and go, get injured, learning effects). In addition, because of the relatively low amount of goals made in each match, a single match outcome in terms of goal difference does not provide us with a strong signal on relative team ability. Estimating team-specific time dynamics (No pooling) might lead to overly noisy, volatile team abilities. Estimating equal time dynamics for all teams (complete pooling) is one way to cope with this situation. However, [@lit_time-varying_2016] found that higher ranking teams having more stable abilities compared to lower ranking teams, and that this distinction improves model fit noticably. An attractive alternative is to use partial pooling (i.e. multilevel / hierarchical modelling) for the time dynamics, which estimates the amount of pooling from the data [@greenland_principles_2000]. We therefore adopt the multilevel variance model of Milad Kharratzadeh [@kharratzadeh_hierarchical_2017]\footnote{The paper of Milad Kharratzadeh has been peer reviewed and is fully reproducible available at \url{https://github.com/stan-dev/stancon_talks/tree/master/2017/Contributed-Talks/02_kharratzadeh}. For the Skellam model, The Stan code of Ben Torvaney of the Karlis \& Ntzoufras static Skellam model on GitHub (https://github.com/Torvaney/soccerstan) provided a starting point. Combining these two sources led to a dynamic multilevel Skellam model, that shares many similarities (apart from the multilevel aspect) with the dynamic Skellam model of Koopman \& Lit.} for both model variants. 
 
 # Description of the model variants
 
@@ -177,7 +177,7 @@ We end up with the following model equations:
 
 Note that we no longer need the exponential function to constrain the $\lambda$'s in the Skellam distribution to the range $[0, \infty]$. 
 
-Finally, following [@karlis_bayesian_2009-1, @koopman_dynamic_2014-1], the Skellam models contain a zero inflation component. This results in a mixed model, where with a probability $p$ the goal difference is 0, and with a probability $1 - p$ the goal difference is generated by the Skellam model. One model variant leaves out this zero inflation component to learn the effect of including it.  
+Finally, following [@karlis_bayesian_2009-1, @lit_time-varying_2016], the Skellam models contain a zero inflation component. This results in a mixed model, where with a probability $p$ the goal difference is 0, and with a probability $1 - p$ the goal difference is generated by the Skellam model. One model variant leaves out this zero inflation component to learn the effect of including it.  
 
 # Inference from data
 
@@ -319,16 +319,19 @@ As expected, the multilevel model leads to smoothed ability estimates.
 
 
 ```{r, echo = FALSE,  fig.width=5, fig.height=6, fig.cap="Estimated team abilities: effect of partial pooling of the team-specific random walk variance. The model was fitted on the dataset used to predict the final round of the 4th season (2016/2017)."}
+source("code/array_to_table.R")
+
 fullrun <- 1
 if(fullrun) {
   epl_np_67 <- readRDS("FITS/fit_epl_np_67.rds")
   a_sims <- extract(epl_np_67, "a")
-    library(arrayhelpers)
-  # a_sims is 3000 x 135 x 23 teams = 9M numbers
-  ma_sims <- array2df(a_sims$a, levels = list(NA, NA, NA), label.x = "value")
   
-  ma_sims <- as.data.table(ma_sims)
-  
+  source("code/array_to_table.R")
+  # a_sims$a is a 3d array with dimensions 3000 x 135 x 23 = 9M numbers
+ 
+  ma_sims <- array_to_data_table(a_sims$a)
+
+  setnames(ma_sims, 2, "iterations")
   setnames(ma_sims, 3, "nweek")
   setnames(ma_sims, 4, "nteam")
   
@@ -345,11 +348,12 @@ fullrun <- 1
 if(fullrun) {
   epl_67 <- readRDS("FITS/fitX_67.rds")
   a_sims <- extract(epl_67, "a")
-   # a_sims is 3000 x 135 x 23 teams = 9M numbers
-  ma_sims <- array2df(a_sims$a, levels = list(NA, NA, NA), label.x = "value")
-  
-  ma_sims <- as.data.table(ma_sims)
-  
+
+  # a_sims$a is a 3d array with dimensions 3000 x 135 x 23 = 9M numbers
+ 
+  ma_sims <- array_to_data_table(a_sims$a)
+
+  setnames(ma_sims, 2, "iterations")
   setnames(ma_sims, 3, "nweek")
   setnames(ma_sims, 4, "nteam")
   
@@ -452,7 +456,7 @@ knitr::kable(tab[order(aRPS), ], digits = 4)
 It is clear that on average, no model has outperformed the bookmakers predictions. As expected, the reference model of fixed equal probabilities has the worst performance.
 Two elements clearly matter for the quality of the forecasts:
 Including the regular home advantage, and including the multilevel model for the time evolution of the team abilities.
-Apart from these observations, we find that for the remaining models we cannot reject the null hypothesis of equal predictive accuracy. Surprisingly, a relatively simple model ($t$-distribution with partial pooling and team strength as a single ability) gives a similar performance compared to a more complex Poisson-based model with attack- and defense parameters. The zero-inflation component does not noticably improve the model accuracy, as was previously found by [@karlis_bayesian_2009-1, @koopman_dynamic_2014-1]. In retrospect, this is not surprising as it adds a fixed amount of probability density to the Draw outcome, irrespective of which teams are playing. 
+Apart from these observations, we find that for the remaining models we cannot reject the null hypothesis of equal predictive accuracy. Surprisingly, a relatively simple model ($t$-distribution with partial pooling and team strength as a single ability) gives a similar performance compared to a more complex Poisson-based model with attack- and defense parameters. The zero-inflation component does not noticably improve the model accuracy, as was previously found by [@karlis_bayesian_2009-1, @lit_time-varying_2016]. In retrospect, this is not surprising as it adds a fixed amount of probability density to the Draw outcome, irrespective of which teams are playing. 
 
 # Conclusions
 
