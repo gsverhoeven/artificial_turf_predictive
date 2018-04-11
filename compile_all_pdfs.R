@@ -16,6 +16,8 @@ require(forecast)
 rmarkdown::render("wrangle_data.Rmd", 
                   output_format = "pdf_document", envir = new.env())
 
+dir.create("FITS", showWarnings = FALSE)
+
 rmarkdown::render("simulate_dynamic.Rmd", 
                   output_format = "pdf_document", envir = new.env())
 
