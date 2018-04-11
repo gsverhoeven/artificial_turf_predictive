@@ -1,4 +1,4 @@
-FitStanModel <- function(stan_model_file, fit_pars, output_file, fullrun = 0, n_samples = 100){
+FitStanModel <- function(stan_model_file, fit_pars, model_data, output_file, fullrun = 0, n_samples = 100){
   if(fullrun) {
     sm <- stan_model(stan_model_file)
     stanfit <-  sampling(sm, 

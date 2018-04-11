@@ -22,7 +22,6 @@ This Notebook fits the models, and extracts the results.
 library(data.table)
 library(ggplot2)
 library(rstan)
-library(stringr)
 library(cowplot)
 library(forecast)
 

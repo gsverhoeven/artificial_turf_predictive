@@ -25,7 +25,6 @@ This Notebook fits the models, and extracts the results.
 library(data.table)
 library(ggplot2)
 library(rstan)
-library(stringr)
 library(cowplot)
 
 rstan_options(auto_write = TRUE)
@@ -595,3 +594,104 @@ plot_grid(gp1, gp2, labels = c("A", "B"), nrow = 2, align = "v")
 
 In particular the last round of the first season shows the models performing worse. However, this is reversed for the last round of the second season.
 
+# Appendix: Ranked Probability Score
+
+To compare model predictive performance we use the Rank Probability Score (RPS), which is the mean-squared error for a multi-category forecast. Here we consider three outcomes, win, draw of loss.
+
+We first test if we have implemented the algorithm properly.
+For this, we reproduce the predictions and outcomes from the Constantinou & Fenton 2012 paper, and compare the RPS values for these examples.
+
+```{r}
+# Unit test: calculate Constantinou & Fenton 2012 examples
+predictions <- rbind(c(1, 0, 0),
+                     c(0.9, 0.1, 0),
+                     c(0.8, 0.1, 0.1),
+                     c(0.5, 0.25, 0.25),
+                     
+                     c(0.35 ,0.3 ,0.35), # this one is better
+                     c( 0.6, 0.3, 0.1), # or not?
+                     
+                     c(0.6 ,0.25 ,0.15),
+                     c( 0.6, 0.15, 0.25),
+                     c( 0.57,0.33,0.1),
+                     c(0.6 ,0.2 ,0.2),
+                     c(0.4, 0.2, 0.4), # not in C&F 2012 paper
+                     c(1/3, 1/3, 1/3), # not in C&F 2012 paper
+                     c(1/3, 1/3, 1/3) # not in C&F 2012 paper
+                     
+)
+
+observed <- rbind(c(1, 0, 0),
+                  c(1, 0, 0),
+                  c(1, 0, 0),
+                  c(1, 0, 0),
+                  
+                  c(0,1,0),
+                  c(0,1,0),
+                  
+                  c(1,0,0),
+                  c(1,0,0),
+                  c(1,0,0),
+                  c(1,0,0) ,
+                  c(1, 0, 0),
+                  c(0, 1, 0),
+                  c(1, 0, 0)
+)
+
+
+vec <- calculate_rps(predictions, observed)
+
+# According their paper, the calculations should give:
+Constantinou_Fenton <- c(0, 0.005, 0.025, 0.1562, 0.1225, 0.1850, 0.09125, 0.11125, 0.09745, 0.1)
+
+signif(vec[1:10],5) == Constantinou_Fenton
+
+Constantinou_Fenton[4]
+vec[4]
+```
+Apart from what appears a rounding error in C&F, we conclude we have implemented the Rank probability score properly.
+
+To get some intuition on what "good" RPS values are for soccer matches,  we try a few simple prediction strategies.
+* All wins
+* all draws
+* equal probs
+* long run average probability of a win, draw of loss
+
+This last strategy automatically incorporates the home advantage, but does not take into account team strength.
+
+```{r}
+model_data <- Create_model_data_for_TS2(NL_ALL[season %in% c(17)], 
+                                        NL_ALL[season == 16], 
+                                        NL_ALL[season %in% c(17)][1:2,])
+
+actual_scorez <- Convert_actual_to_win_draw_loss_vector(model_data$goal_difference)
+
+# always draw
+pred_probz <- data.table(game_id = 1:model_data$n_games, 
+                         p_win = 0, 
+                         p_draw = 1,
+                         p_loss = 0)
+calculate_arps(pred_probz[,.( p_win, p_draw, p_loss)], actual_scorez[,.(act_win, act_draw, act_loss)])
+
+# always win
+pred_probz <- data.table(game_id = 1:model_data$n_games, 
+                         p_win = 1, 
+                         p_draw = 0,
+                         p_loss = 0)
+calculate_arps(pred_probz[,.( p_win, p_draw, p_loss)], actual_scorez[,.(act_win, act_draw, act_loss)])
+
+# equal probs
+pred_probz <- data.table(game_id = 1:model_data$n_games, 
+                         p_win = 1/3, 
+                         p_draw = 1/3,
+                         p_loss = 1/3)
+calculate_arps(pred_probz[,.( p_win, p_draw, p_loss)], actual_scorez[,.(act_win, act_draw, act_loss)])
+
+# average over all matches (this takes into account the home advantage)
+pred_probz <- data.table(game_id = 1:model_data$n_games, 
+                         p_win = mean(actual_scorez$act_win), 
+                         p_draw = mean(actual_scorez$act_draw),
+                         p_loss = mean(actual_scorez$act_loss))
+calculate_arps(pred_probz[,.( p_win, p_draw, p_loss)], actual_scorez[,.(act_win, act_draw, act_loss)])
+```
+So our models must score at least an average RPS of 0.23 to be any good.

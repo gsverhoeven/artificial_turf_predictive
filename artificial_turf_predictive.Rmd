@@ -41,7 +41,7 @@ options(mc.cores = parallel::detectCores())
 
 ```{r results = 'hide'}
 # Toggle MCMC sampling on or off
-fullrun <- 1
+fullrun <- 0
 ```
 
 
@@ -57,6 +57,8 @@ source("code/ppc_coverage_plot.R")
 source("code/calc_rps_scores.R")
 source("code/odds_to_probability.R")
 source("code/ReadfitsandCalculateRPS.R")
+source("code/array_to_table.R")
+source("code/FitStanModel.R")
 ```
 
 ```{r load_data, results = 'hide', message = FALSE}
@@ -292,10 +294,11 @@ Figure 2 shows the distribution of goal differences, both of the actual data, as
 
 
 ```{r echo = FALSE, fig.width=5, fig.height=3, fig.cap="Predicted distribution of goal differences versus actual distribution. Shown are the predictions for the Skellam model. "}
+
 # did not save the in sample goal differences: refit last sd model, save all variables
-source("code/FitStanModel.R")
 sd_67 <- FitStanModel(stan_model_file = "models\\skellam_dynamic.stan",
                       fit_pars = fit_pars,
+                      model_data = model_data,
                       output_file = "FITS\\sd_67_full.rds",
                       fullrun = fullrun,
                       n_samples = 1000)
@@ -305,7 +308,9 @@ score_diff_rep <- extract(sd_67, "goal_difference_rep")
 # save memory
 rm(sd_67)
 
-gp <- games_predicted_vs_actual_intervals_simple(model_data$goal_difference, score_diff_rep, diff_limits = c(-8,8)) + theme_light()
+gp <- games_predicted_vs_actual_intervals_simple(model_data$goal_difference, 
+                                                 score_diff_rep, diff_limits = c(-8,8)) + 
+  theme_light()
 gp
 ```
 
@@ -316,14 +321,11 @@ As expected, the multilevel model leads to smoothed ability estimates.
 
 
 ```{r, echo = FALSE,  fig.width=5, fig.height=6, fig.cap="Estimated team abilities: effect of partial pooling of the team-specific random walk variance. The model was fitted on the dataset used to predict the final round of the 4th season (2016/2017)."}
-source("code/array_to_table.R")
-
 
 if(fullrun) {
-  #epl_np_67 <- readRDS("FITS/fit_epl_np_67.rds")
-  source("code/FitStanModel.R")
   epl_np_67 <- FitStanModel(stan_model_file = "models\\epl_model_no_pooling.stan",
                       fit_pars = fit_pars,
+                      model_data = model_data,
                       output_file = "FITS\\epl_np_67.rds",
                       fullrun = fullrun,
                       n_samples = 1000)
@@ -351,10 +353,9 @@ gp1 <- MakeTimeSeriesPlot(ma_sims, title = "T-distribution base model: no poolin
 rm(ma_sims)
 
 if(fullrun) {
-  #epl_67 <- readRDS("FITS/fitX_67.rds")
-  source("code/FitStanModel.R")
   epl_67 <- FitStanModel(stan_model_file = "models\\epl_model.stan",
                       fit_pars = fit_pars,
+                      model_data = model_data,
                       output_file = "FITS\\fitX_67.rds",
                       fullrun = fullrun,
                       n_samples = 1000)
