@@ -14,11 +14,13 @@ link-citations: yes
 csl: global-ecology-and-biogeography.csl
 bibliography: Soccer.bib
 ---
-# Summary
+# Summary\footnote{The author would like to thank Rutger Lit, Ramsis Croes and Misja Mikkers for useful comments and suggestions.}
 
 Currently, one in three matches in Dutch professional football ("Eredivisie") is played on an artificial turf surface. Recently, statistical evidence was reported that suggest an increased home advantage for Dutch teams playing on artificial turf against an away team that plays its home games on natural grass [@van_ours_artificial_2017]. Here we investigate if accounting for this effect increases out-of-sample predictive accuracy of match outcomes. To do so, we implemented existing probabilistic models to make one-step-ahead forecasts, with and without the additional artificial turf predictor. The ranked probability score (RPS) is used to assess the accuracy of the forecasts and compare between models. We find that including the artificial turf home advantage as additional predictor does not improve the accuracy of the forecasts. We conclude that the evidence for a large artificial turf advantage in the Eredivisie is not strong.
 
 *Keywords*: forecasting, soccer, artificial turf
+
+
 
 
 
@@ -387,9 +389,9 @@ plot_grid(gp1, gp2, labels = c("A", "B"), nrow = 2, align = "v")
 We also compare the quality of our model predictions against the bookmaker odds.
 For this we use the Ranked probability score for each match, and aggregate by week to compare over time (Figure 4), as well as by match type (Figure 5).
 
-For the comparison over time, we compare the best model (Skellam model without zero inflation) with the Bet365 odds. Figure 4A shows that the average quality of the forecasts between statistical model and bookmaker odds correlate strongly, and Figure 4B shows that there is no time / seasonal trend or structural break visible over time. The vertical line marks the first week of the second out-of-sample season. Figure 4B contains a local polynomial regression fit to smooth the time series (blue line).
+For the comparison over time, we compare the best model (Skellam model without zero inflation) with the Bet365 odds. Figure 4A shows that the average quality of the forecasts between statistical model and bookmaker odds correlate strongly, and Figure 4B shows that there is no time / seasonal trend or structural break visible over time. The vertical line marks the first week of the second out-of-sample season. Figure 4B contains a local polynomial regression fit to smooth the time series (blue line). 
 
-```{r figtimeShowdown, echo = FALSE, fig.width=5, fig.height=4, fig.cap="Bet365 vs best Skellam model forecasts compared over time."}
+```{r figtimeShowdown, echo = FALSE, fig.width=5, fig.height=4, fig.cap="Bet365 vs best Skellam model: A) weekly averaged Ranked Probability Scores over time, for all playing rounds in seasons 2015/2016 and 2016/2017. B) Difference between the values plotted in A) over time, with a polynomial smoothing fit to visualize possible time trends. The vertical line marks the first week of season 2016/2017."}
 tmp <- melt(res_time[model_nr %in% c(7,12), .(round, model_nr, arps)], measure.vars = "arps")
 tmp <- dcast(tmp, round ~ model_nr)
 tmp <- tmp[, diff := `7` - `12`]

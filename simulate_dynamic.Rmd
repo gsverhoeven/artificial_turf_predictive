@@ -30,7 +30,7 @@ source("code/ReadfitsandCalculateRPS.R")
 source("code/FitOneStepAhead.R")
 
 # create output folder
-if(!dir.exists("../output")) {dir.create("../output")}
+if(!dir.exists("output")) {dir.create("output")}
 
 ```
 
