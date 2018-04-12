@@ -1,5 +1,9 @@
 rm(list = ls())
 
+# Make sure that working directory is set to the location of this R script!
+# i.e.
+#setwd("C:/artificial_turf_predictive")
+
 # needed R-packages
 require(rmarkdown)
 require(knitr)

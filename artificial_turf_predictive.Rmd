@@ -43,7 +43,7 @@ options(mc.cores = parallel::detectCores())
 
 ```{r results = 'hide'}
 # Toggle MCMC sampling on or off
-fullrun <- 0
+fullrun <- 1
 ```
 
 
