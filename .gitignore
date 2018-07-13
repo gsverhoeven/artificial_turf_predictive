@@ -8,3 +8,5 @@
 *.db
 *.docx
 FITS/
+output/a_sims*
+Stancon/
