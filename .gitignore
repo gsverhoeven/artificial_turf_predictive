@@ -7,5 +7,5 @@
 *.pptx
 *.db
 *.docx
-FITS*
+FITS/
 stancon*
