@@ -30,7 +30,7 @@ source("code/ReadfitsandCalculateRPS.R")
 source("code/FitOneStepAhead.R")
 
 # create output folder
-if(!dir.exists("../output")) {dir.create("../output")}
+if(!dir.exists("output")) {dir.create("output")}
 
 ```
 
@@ -77,16 +77,16 @@ ggplot(ma_defense[variable %in% c(paste("V", 1:34, sep = '')),], aes(x= variable
 # Fit model
 
 ```{r}
-fullrun <- 0
+fullrun <- 1
 
 if(fullrun) {
 stanfit_sim_skellam <- stan(
   file = "models\\skellam_dynamic.stan",
   data = model_data,
   chains = 4, 
-  warmup = 500, 
+  warmup = 100, 
   init_r = 0.1, # instead of 2
-  iter = 1500,
+  iter = 250,
   cores = 4,
   control = list(adapt_delta = 0.95)
   )

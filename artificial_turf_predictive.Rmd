@@ -14,11 +14,13 @@ link-citations: yes
 csl: global-ecology-and-biogeography.csl
 bibliography: Soccer.bib
 ---
-# Summary
+# Summary\footnote{The author would like to thank Rutger Lit, Ramsis Croes and Misja Mikkers for useful comments and suggestions.}
 
 Currently, one in three matches in Dutch professional football ("Eredivisie") is played on an artificial turf surface. Recently, statistical evidence was reported that suggest an increased home advantage for Dutch teams playing on artificial turf against an away team that plays its home games on natural grass [@van_ours_artificial_2017]. Here we investigate if accounting for this effect increases out-of-sample predictive accuracy of match outcomes. To do so, we implemented existing probabilistic models to make one-step-ahead forecasts, with and without the additional artificial turf predictor. The ranked probability score (RPS) is used to assess the accuracy of the forecasts and compare between models. We find that including the artificial turf home advantage as additional predictor does not improve the accuracy of the forecasts. We conclude that the evidence for a large artificial turf advantage in the Eredivisie is not strong.
 
 *Keywords*: forecasting, soccer, artificial turf
+
+
 
 
 
@@ -40,6 +42,12 @@ options(mc.cores = parallel::detectCores())
 ```
 
 ```{r results = 'hide'}
+# Toggle MCMC sampling on or off
+fullrun <- 1
+```
+
+
+```{r results = 'hide'}
 source("code/ppc_coverage_plot.R")
 source("code/MakeTimeSeriesPlot.R")
 source("code/Create_model_data_for_TS2.R")
@@ -51,6 +59,8 @@ source("code/ppc_coverage_plot.R")
 source("code/calc_rps_scores.R")
 source("code/odds_to_probability.R")
 source("code/ReadfitsandCalculateRPS.R")
+source("code/array_to_table.R")
+source("code/FitStanModel.R")
 ```
 
 ```{r load_data, results = 'hide', message = FALSE}
@@ -286,29 +296,23 @@ Figure 2 shows the distribution of goal differences, both of the actual data, as
 
 
 ```{r echo = FALSE, fig.width=5, fig.height=3, fig.cap="Predicted distribution of goal differences versus actual distribution. Shown are the predictions for the Skellam model. "}
+
 # did not save the in sample goal differences: refit last sd model, save all variables
-fullrun <- 0
-if(fullrun) {
-  sm <- stan_model( "models\\skellam_dynamic.stan")
-  sd_67 <-  sampling(sm, 
-    chains = fit_pars$chains, 
-    init_r = fit_pars$init_r_val, 
-    warmup = fit_pars$warmup,
-    iter = fit_pars$nsamples,
-    data = model_data,
-    save_warmup = FALSE,
-    control = list(max_treedepth = 15,
-    adapt_delta = 0.99)
-  )
-  saveRDS(sd_67, "FITS\\sd_67_full.rds")
-} else { sd_67 <- readRDS("FITS\\sd_67_full.rds")}
+sd_67 <- FitStanModel(stan_model_file = "models\\skellam_dynamic.stan",
+                      fit_pars = fit_pars,
+                      model_data = model_data,
+                      output_file = "FITS\\sd_67_full.rds",
+                      fullrun = fullrun,
+                      n_samples = 1000)
 
 score_diff_rep <- extract(sd_67, "goal_difference_rep")
 
 # save memory
 rm(sd_67)
 
-gp <- games_predicted_vs_actual_intervals_simple(model_data$goal_difference, score_diff_rep, diff_limits = c(-8,8)) + theme_light()
+gp <- games_predicted_vs_actual_intervals_simple(model_data$goal_difference, 
+                                                 score_diff_rep, diff_limits = c(-8,8)) + 
+  theme_light()
 gp
 ```
 
@@ -319,11 +323,15 @@ As expected, the multilevel model leads to smoothed ability estimates.
 
 
 ```{r, echo = FALSE,  fig.width=5, fig.height=6, fig.cap="Estimated team abilities: effect of partial pooling of the team-specific random walk variance. The model was fitted on the dataset used to predict the final round of the 4th season (2016/2017)."}
-source("code/array_to_table.R")
 
-fullrun <- 1
 if(fullrun) {
-  epl_np_67 <- readRDS("FITS/fit_epl_np_67.rds")
+  epl_np_67 <- FitStanModel(stan_model_file = "models\\epl_model_no_pooling.stan",
+                      fit_pars = fit_pars,
+                      model_data = model_data,
+                      output_file = "FITS\\epl_np_67.rds",
+                      fullrun = fullrun,
+                      n_samples = 1000)
+
   a_sims <- extract(epl_np_67, "a")
   
   source("code/array_to_table.R")
@@ -340,13 +348,19 @@ if(fullrun) {
 
 id_lut <- model_data$id_lut
 
-gp1 <- MakeTimeSeriesPlot(ma_sims, title = "T-distribution base model: no pooling", id_lut, subset = c("Ajax", "Feyenoord")) + ylim(c(-3,3)) + theme_bw()
+gp1 <- MakeTimeSeriesPlot(ma_sims, title = "T-distribution base model: no pooling", 
+                          id_lut, subset = c("Ajax", "Feyenoord")) + 
+  ylim(c(-3,3)) + theme_bw()
 
 rm(ma_sims)
 
-fullrun <- 1
 if(fullrun) {
-  epl_67 <- readRDS("FITS/fitX_67.rds")
+  epl_67 <- FitStanModel(stan_model_file = "models\\epl_model.stan",
+                      fit_pars = fit_pars,
+                      model_data = model_data,
+                      output_file = "FITS\\fitX_67.rds",
+                      fullrun = fullrun,
+                      n_samples = 1000)
   a_sims <- extract(epl_67, "a")
 
   # a_sims$a is a 3d array with dimensions 3000 x 135 x 23 = 9M numbers
@@ -362,7 +376,9 @@ if(fullrun) {
 
 id_lut <- model_data$id_lut
 
-gp2 <- MakeTimeSeriesPlot(ma_sims, title = "T-distribution base model: partial pooling", id_lut, subset = c("Ajax", "Feyenoord")) + ylim(c(-3,3)) + theme_bw()
+gp2 <- MakeTimeSeriesPlot(ma_sims, title = "T-distribution base model: partial pooling", 
+                          id_lut, subset = c("Ajax", "Feyenoord")) + 
+  ylim(c(-3,3)) + theme_bw()
 
 rm(ma_sims)
 
@@ -373,9 +389,9 @@ plot_grid(gp1, gp2, labels = c("A", "B"), nrow = 2, align = "v")
 We also compare the quality of our model predictions against the bookmaker odds.
 For this we use the Ranked probability score for each match, and aggregate by week to compare over time (Figure 4), as well as by match type (Figure 5).
 
-For the comparison over time, we compare the best model (Skellam model without zero inflation) with the Bet365 odds. Figure 4A shows that the average quality of the forecasts between statistical model and bookmaker odds correlate strongly, and Figure 4B shows that there is no time / seasonal trend or structural break visible over time. The vertical line marks the first week of the second out-of-sample season. Figure 4B contains a local polynomial regression fit to smooth the time series (blue line).
+For the comparison over time, we compare the best model (Skellam model without zero inflation) with the Bet365 odds. Figure 4A shows that the average quality of the forecasts between statistical model and bookmaker odds correlate strongly, and Figure 4B shows that there is no time / seasonal trend or structural break visible over time. The vertical line marks the first week of the second out-of-sample season. Figure 4B contains a local polynomial regression fit to smooth the time series (blue line). 
 
-```{r figtimeShowdown, echo = FALSE, fig.width=5, fig.height=4, fig.cap="Bet365 vs best Skellam model forecasts compared over time."}
+```{r figtimeShowdown, echo = FALSE, fig.width=5, fig.height=4, fig.cap="Bet365 vs best Skellam model: A) weekly averaged Ranked Probability Scores over time, for all playing rounds in seasons 2015/2016 and 2016/2017. B) Difference between the values plotted in A) over time, with a polynomial smoothing fit to visualize possible time trends. The vertical line marks the first week of season 2016/2017."}
 tmp <- melt(res_time[model_nr %in% c(7,12), .(round, model_nr, arps)], measure.vars = "arps")
 tmp <- dcast(tmp, round ~ model_nr)
 tmp <- tmp[, diff := `7` - `12`]
@@ -388,7 +404,7 @@ gp1 <- ggplot(res_time[model_nr %in% c(7,12),], aes(x = (round - min_round), y =
 
 gp2 <- ggplot(tmp, aes(x = (round - min_round), y = diff)) +
   geom_point() + geom_line() + geom_smooth() + xlab("Round number") + ylab("delta RPS") + ylim(c(-0.05, 0.05)) + geom_vline(xintercept = 34) + theme_bw()
-library(cowplot)
+
 plot_grid(gp1, gp2, labels = c("A", "B"), nrow = 2, align = "v")
 ```
 
