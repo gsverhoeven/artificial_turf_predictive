@@ -17,7 +17,18 @@ knitr::opts_chunk$set(cache=FALSE)
 
 # Summary
 
-This Notebook fits the models, and extracts the results.
+This Notebook contains the following analyses:
+
+* MCMC diagnostics
+  * screening for high Rhat's / low effective sample sizes.
+  * MCMC error and run consistency
+* Dot plots of fitted model parameters with credible (HPDI) intervals
+* Analysis of the DM-statistic
+* Bookmaker odds
+  * Predictive quality (using RPS) over time
+  * Longshot bias: Model calibration for low probability events
+* Model checking (comparing average RPS between models by various strata, including over time)
+* Appendix: Ranked probability score
 
 # Load packages
 
@@ -32,6 +43,7 @@ options(mc.cores = parallel::detectCores())
 ```
 
 ```{r}
+source("code/rankProbScore.R")
 source("code/ppc_coverage_plot.R")
 source("code/MakeTimeSeriesPlot.R")
 source("code/Create_model_data_for_TS2.R")
@@ -239,7 +251,8 @@ We conclude that there is a large variability from season to season ranging betw
 
 # Calculate Bookmaker benchmark for Lit et al study
 
-Check what the benchmark is, ** exactly **, for the Lit study. They use the period 2009/2010 to 2015/2016, i.e. the average of seven seasons as out-of-sample.
+Check what the Bookmaker average RPS benchmark is, ** exactly **, for the Lit study. They use the period 2009/2010 to 2015/2016, i.e. the average of seven seasons as out-of-sample.
+By comparing this with the performance of their best models, we can learn if they "beat the bookies".
 
 ```{r}
 # calculate aprs bookmakers for oos period Lit: 
@@ -248,17 +261,23 @@ actual_scorez <- Convert_actual_to_win_draw_loss_vector(NL_ALL[season %in% c(10:
 # select non-NA records
 selection <- !is.na(WH_probs$prob_win)
 print(calculate_arps(WH_probs[selection,.( prob_win, prob_draw, prob_loss)], actual_scorez[selection,.(act_win, act_draw, act_loss)]))
-
 ```
 So Lit et al also do not "beat the bookies" with their best dynamic models (0.193) for the NL Eredivisie.
 
 # analyse long shot bias
 
-There is some literature on "long shot bias" in bookmakers odds, where models could outperform the bookmakers.
+There is some literature on "long shot bias" in bookmakers odds, where models could outperform the bookmakers for low-probability events, where the bettors would overvalue low-probability events.
 We interpret this as checking calibration for low-probability events.
 To get sufficient statistics, we choose the probability bin between 5% and 15%.
 Check all three outcomes.
 
+```{r}
+NL_ALL_PRED[p_win >= 0.05 & p_win < 0.15, .(mean(act_win), .N), .(model_nr)][order(-N)]
+NL_ALL_PRED[p_draw >= 0.05 & p_draw < 0.15, .(mean(act_draw), .N), .(model_nr)][order(-N)]
+NL_ALL_PRED[p_loss >= 0.05 & p_loss < 0.15, .(mean(act_loss), .N), .(model_nr)][order(-N)]
+```
+
+What sampling variation do we expect for these sample sizes?
 For 100 events with a probability of 0.1 of happening, we expect a range of values between 5 and 15, ie.. percentages of 0.05 to 0.15.
 
 ```{r}
@@ -266,12 +285,6 @@ summary(rbinom(1000, 100, 0.1))
 summary(rbinom(1000, 50, 0.1))
 ```
 
-
-```{r}
-NL_ALL_PRED[p_win >= 0.05 & p_win < 0.15, .(mean(act_win), .N), .(model_nr)][order(-N)]
-NL_ALL_PRED[p_draw >= 0.05 & p_draw < 0.15, .(mean(act_draw), .N), .(model_nr)][order(-N)]
-NL_ALL_PRED[p_loss >= 0.05 & p_loss < 0.15, .(mean(act_loss), .N), .(model_nr)][order(-N)]
-```
 The actual frequency for low probability wins and losses are within acceptable range of sampling error if we assume that the predicted probabilities are correct. The frequencies for the low probability draws however are structurally too high (around 20% instead of 10%). I.e. they occur more often than predicted. 
 
 # Model checking
@@ -652,6 +665,7 @@ vec[4]
 Apart from what appears a rounding error in C&F, we conclude we have implemented the Rank probability score properly.
 
 To get some intuition on what "good" RPS values are for soccer matches,  we try a few simple prediction strategies.
+
 * All wins
 * all draws
 * equal probs

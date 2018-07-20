@@ -91,8 +91,8 @@ NL_ALL does not contain the betting odds of Bet365. We need these for the out-of
 
 ```{r}
 # read in raw data with betting odds
-NL15 <- data.table(read.table(unz("data\\data15.zip", "N1.csv"), header=T, quote="\"", sep=","))
-NL16 <- data.table(read.table(unz("data\\data16.zip", "N1.csv"), header=T, quote="\"", sep=","))
+NL15 <- data.table(read.table(unz("data/data15.zip", "N1.csv"), header=T, quote="\"", sep=","))
+NL16 <- data.table(read.table(unz("data/data16.zip", "N1.csv"), header=T, quote="\"", sep=","))
 
 NLodds <- rbind(NL15, NL16)
 
