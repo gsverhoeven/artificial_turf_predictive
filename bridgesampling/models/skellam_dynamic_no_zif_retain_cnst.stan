@@ -3,10 +3,14 @@ functions {
   real skellam_lpmf(int k, real mu1, real mu2) {
     real total;
     real log_prob;
+    real tmp;
 
     total = (- mu1 - mu2) + ((log(mu1) - log(mu2)) * k / 2);
-
-    log_prob = total + log(modified_bessel_first_kind(k, 2 * sqrt(mu1*mu2)));
+    
+    tmp = 2 * sqrt(mu1*mu2);
+    if(tmp > 700) log_prob = total;
+    else
+      log_prob = total + log(modified_bessel_first_kind(k, tmp));
 
     return log_prob;
   }

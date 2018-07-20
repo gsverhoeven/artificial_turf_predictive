@@ -14,7 +14,7 @@ knitr::opts_chunk$set(cache=FALSE)
 
 # Summary
 
-This Notebook fits the models, and extracts the results.
+This Notebook fits the models, extracts the results, and calculates the Ranked probability scores for the fitted models, as well as for three reference models, two based on (differing) Bookmaker odds, and one "random" model that predicts equal probabilities Win/Draw/Lose for each match. Finally, the Diebold-Mariano test statistic is used to statistically compare the prediction quality (as quantified with the Ranked probability Score) of the various models.
 
 # Load packages
 
@@ -87,7 +87,7 @@ NL_ALL <- NL_ALL[, row_id := 1:nrow(NL_ALL)]
 saveRDS(NL_ALL, "output/NL_ALL.rds")
 ```
 
-NL_ALL does not contain the betting odds of Bet365. We need these for the out-of-sample seasons 2015/2016 and 2016/2017 to compare our forecasts.
+NL_ALL does not contain the betting odds of Bet365. We need these for the out-of-sample seasons 2015/2016 and 2016/2017 to compare our forecasts. So we create a separate dataset that includes these betting odds.
 
 ```{r}
 # read in raw data with betting odds
@@ -99,45 +99,39 @@ NLodds <- rbind(NL15, NL16)
 NLodds <- NLodds[, Date := as.Date(Date, "%d/%m/%y")]
 ```
 
-
-# Plot percentages of artificial turf matches vs season
-
-Since we're interested in the effect of artificial turf, lets plot the number of matches where the artificial turf home advantage could be "at work". 
-
-```{r}
-res <- NL_ALL[, .(perc_art_turf_advantage = mean(art_turf_advantage)), .(season)]
-ggplot(res, aes(x = 1999+season, y = perc_art_turf_advantage)) + 
-  geom_point() + ylim(0, 1) + geom_line()
-```
-
 # Forecasting approach: train / test choices
 
-We pick two seasons as training set up to the first out-of-sample predictions, we then use an expanding window into the next season.
+We pick two seasons as training set up to the first out-of-sample predictions, we then use an expanding window into the next two seasons.
 
 For the first two out-of-sample weeks (home and away) we miss a prediction for the new team, which is not present in the in-sample dataset). This gives 304 predictions (17 * 9 -2).
+For the fourth season (Second out-of-sample season), the same situation occurs.
+Together, this makes for 608 out-of-sample match predictions where we can compare the predictive performance of the various models.
 
-Need to think carefully about new teams in t+1. They don't have parameters yet.
-Problem: team_ids in sample fitting don't match the prediction.
+A technical issue is that we need to think carefully about new teams in t+1. They don't have parameters yet. Problem: team_ids in sample fitting don't match the prediction team ids.
 We solve this by generating matching id's during creation of model_Data.
 
 # Out of sample predictions: results for seasons 2015/2016 and 2016/2017
 
 This is the part where all the MCMC work gets done.
 Fit all models in `model_list` with fitting parameter settings fit_pars.
-For each model we specify which parameters should be saved, this is to limit the amount of disk space used by the model fits.
 
+```{r}
+model_list <- data.table(read.csv2("models/model_list.csv"))
+
+model_list
+```
+For each model we specify which parameters should be saved (`include_pars`), this is to limit the amount of disk space used by the model fits (Currently 45 Gb for 68 weeks x 10 models = 680 model fits).
+In addition, we specify using `extract_pars` which parameters should be extracted from the fit models for analysis. `model_list` also contains metadata for each model: its full name, short name for saving files, various dimensions in which the models differ (artificial turf predictor yes/no, home advantage yes / no, partial pooling yes/no, one of two ability parameters for each team etc).
 
 `fit_models` sets whether fitting should run or whether only saved fits are read and processed.
 `fullrun` sets whether saved fits should be processed or the saved result table should be read instead.
 
-Need to include the main predictors as well (b_home, artificial_turf_effect, etc).
+The One-step-ahead out-of-sample predictions are generated during sampling using the generated quantities{} block of Stan.
 
 ```{r }
 source("code/Create_model_data_for_TS2.R")
 source("code/fitOneStepAhead.R")
 source("code/ReadfitsandCalculateRPS.R")
-
-model_list <- data.table(read.csv2("models/model_list.csv"))
 
 fit_pars <- list(nsamples = 1000, # samples PER chain, including warmup
                 chains = 6,
@@ -183,12 +177,11 @@ All models are now "warning" free from Stan.
 
 # extract coefficients from model fits
 
-We're interested in all non-team parameters.
+We're interested in all "global" (i.e. non-team specific) parameters.
 So constant_mu, home_advantage, artificial_turf_advantage etc.
-Want this for all 68 weeks available for each model.
+We want to extract this for all 68 weeks available for each model.
 
-This allows us to see change over the two year period that we ADD to the years we start with (2013/2014 and 2014/2015). So the final model (last week of 2016/2017 season) is based on four seasons of match data.
-
+This allows us to see change in the coefficients over the two year period of data that we ADD to the years we start with (2013/2014 and 2014/2015). So the final model (last week of 2016/2017 season) is based on four seasons of match data.
 
 ```{r}
 read_fit_coefs <- 0
@@ -220,8 +213,9 @@ if(read_fit_coefs){
 
 # Extract Rhat and n_eff from fits
 
+To check convergence and / or sampling problems, we extract all Rhat and n_eff from the fits for further inspection.
+
 ```{r}
-#source("code/ReadfitsandExtractCoefs.R")
 read_rhat_neff <- 0
 
 model_list_tmp <- model_list
@@ -251,12 +245,10 @@ if(read_rhat_neff){
 
 # Create dataset with all matches, and all predictions from each model
 
-We use this dataset to identify strengths and weaknesses from the models.
+We use this dataset to identify strengths and weaknesses from the models (model checking).
 
-We also add the bookmakers probabilities to calculate the average RPS.
+We also add the bookmakers probabilities to calculate the average Ranked Probability Score (RPS).
 
-Lets pick B365 and WHH. Bet365 because it appears to be a popular choice.
-William Hill because it is also present for matches in 2000.
 We use basic normalization to convert betting odds to probabilities.
 
 ```{r}
@@ -331,12 +323,15 @@ saveRDS(NL_ALL_PRED, file = "Output/20180406 NL_ALL_PRED_w_odds.rds")
 } else {NL_ALL_PRED <- readRDS("Output/20180406 NL_ALL_PRED_w_odds.rds")}
 ```
 
-At this point, NL_ALL_PRED has rps scores for all 608 predicted matches for all models, including the betting odds.
+At this point, NL_ALL_PRED has rps scores for all 608 predicted matches for all models, including the betting odds of Bet365 and William Hill.
 
 # Create main result by model table
 
+To compare the models, we calculate the average RPS for each model from the individual math dataset. From `model_list` , we add each models metadata to this table.
+
 ```{r}
-result <- NL_ALL_PRED[!(model_nr %in% c(11:13)), .(aRPS = mean(rps_vec, na.rm = T),
+result <- NL_ALL_PRED[!(model_nr %in% c(11:13)), 
+                      .(aRPS = mean(rps_vec, na.rm = T),
                        N_pred = nrow(.SD[!is.na(rps_vec)])), .(model_nr)][order(aRPS)]
 
 setkey(result, model_nr)
@@ -345,6 +340,8 @@ result <- model_list[result]
 ```
 
 # Add betting odds result to main result table
+
+We append the betting odds RPS to the result table.
 
 Use this table to present results in the manuscript.
 
@@ -386,21 +383,21 @@ result <- rbind(result, result_Equal_prob)
 
 # Add Diebold-Mariano test statistic
 
-We add the DM statistic using various reference models.
+We also use the Diebold-Mariano test statistic to compare the predictive accuracy of the various models. We compare each model against three different reference models.
 
 ```{r}
 source("code/AddDMTest.R")
 # bet365, beste odds
-result <- AddDMtest(result, NL_ALL_PRED, ref_model_nr = 12)
+result <- AddDMtest(result, NL_ALL_PRED, ref_model_nr = 12) # Bet365 odds
 # t-dist base model
-result <- AddDMtest(result, NL_ALL_PRED, ref_model_nr = 1)
+result <- AddDMtest(result, NL_ALL_PRED, ref_model_nr = 1) # t-dist
 # Skellam no zif is base model 
-result <- AddDMtest(result, NL_ALL_PRED, ref_model_nr = 7)
+result <- AddDMtest(result, NL_ALL_PRED, ref_model_nr = 7) # skellam no-zif
 
 saveRDS(result, file = "output/20180406 average RPS by model.rds")
 ```
 
-Check if we understand DM.
+One of the assumptions when comparing two prediction error time series, is that there is no serial (auto) correlation. Since here the two vectors are Ranked probability scores of matches between different teams, we expect that this assumption holds. We test this for one of the models. 
 
 ```{r}
 osa_res[[1]]$name
@@ -410,19 +407,28 @@ osa_res[[6]]$name
 e1 <- NL_ALL_PRED[model_nr == 6 & !is.na(rps_vec), ]$rps_vec 
 w <- acf(e1)
 # Zero autocorrelation indeed
+```
 
+Check if we understand the Diebold-Mariano test statistic.
+We expect that this is basically a two sample t-test for equal sample means assuming equal variance. Thus, the DM-statistic p-value should be close / identical to the p-value of an OLS intercept only model for the difference of the two time series. This is indeed the case.
+
+```{r}
 # partial pooling yes/no
 delta <- osa_res[[1]]$rps_vec - osa_res[[6]]$rps_vec
+
+# OLS intercept only
 summary(lm(y ~ 1, data = data.frame(y = delta)))
 
 result[model_nr == 6,]$DMstat_1
 result[model_nr == 6,]$DMpval_1
 
-# yes we do
+# identical
 ```
 
 
 # Display main result by model table
+
+Finally, we list the result table for all models, including the betting odds and equal-probability reference models, but excluding the two reruns that we used to check for sampling stability / reproducability of our results.
 
 ```{r}
 # exclude reruns
