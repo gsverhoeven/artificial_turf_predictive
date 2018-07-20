@@ -6,6 +6,12 @@ toc: true
 toc_depth: 3
 ---
 
+# Summary
+
+This R-notebook takes as input the raw match data files (one for each season) downloaded from Football.co.uk.
+It merges them into one dataset, adds a few derived variables, and adds information on which matches were played on artificial turf.
+Finally, the complete enriched dataset is saved as a R object, ready for analysis.
+
 # Load packages
 
 ```{r}

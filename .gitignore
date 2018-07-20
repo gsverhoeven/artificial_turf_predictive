@@ -10,3 +10,5 @@
 FITS/
 output/a_sims*
 Stancon/
+bridgesampling/models/*.rds
+bridgesampling/output/*

@@ -1,7 +1,7 @@
 # Fit model
 
 fitOneStepAhead <- function(toggle_dynamic, 
-                            sm_string = "models\\epl_model.stan",
+                            sm_string = "models/epl_model.stan",
                             model_short_name = "default_short", 
                             model_long_name  = "default_long",
                             stanfit_include_pars = NA,

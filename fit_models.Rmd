@@ -122,7 +122,7 @@ We solve this by generating matching id's during creation of model_Data.
 
 # Out of sample predictions: results for seasons 2015/2016 and 2016/2017
 
-This is part where all the MCMC work gets done.
+This is the part where all the MCMC work gets done.
 Fit all models in `model_list` with fitting parameter settings fit_pars.
 For each model we specify which parameters should be saved, this is to limit the amount of disk space used by the model fits.
 

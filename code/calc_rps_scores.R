@@ -1,4 +1,4 @@
-source("code/rankProbScore.R")
+
 #sims <- extract(stanfit_epl_dpl)
 #score_diff_rep <- sims$score_diff_rep
 

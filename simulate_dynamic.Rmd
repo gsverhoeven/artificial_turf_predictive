@@ -4,8 +4,15 @@ output:
   pdf_document: default
 toc: true
 toc_depth: 3
-
 ---
+
+# Summary
+
+This R-notebook checks whether the dynamic Skellam model has been properly implemented in Stan.
+It does so by simulating data from the data generating process, and checking if the fitted model 
+parameter estimates are similar to the true parameter values used to simulate the data.
+
+
 ```{r, results = 'hide', message = FALSE, warning = FALSE}
 rm(list = ls())
 library(data.table)
@@ -44,7 +51,7 @@ my_par_list <- list(nseasons = 2,
                  offense_sigma = 0.25,
                  defense_sigma = 0.25,
                  mixing_proportion = 0.05, # 5% excess draws to test the zero inflation
-                 mu_const = 0,
+                 mu_const = 0.2,
                  home_advantage = 0.4,
                  hyper_variance = 0.1,
                  art_turf_vec = c(rep(0, 12), rep(1, 6)), # not used
@@ -55,51 +62,55 @@ my_par_list <- list(nseasons = 2,
 model_data <- Simulate_dynamic_ZPD_data(seed = 123, my_par_list)
 ```
 
+`Simulate_dynamic_ZPD_data()` first simulates for each team two time series, one for its attack ability, and one for its defense ability.
+It then uses these abilities to generate match outcomes for random pairings of teams. The match outcomes are simulated according to the Skellam model (difference of two Poisson distributions), with a zero inflation component added.
 
-# plot abilities
+# plot the true (simulated) team abilities
 
 ```{r warning = FALSE, message = FALSE}
 ma_offense <- data.table(melt(model_data$a_offense))
 
-ggplot(ma_offense[variable %in% c(paste("V", 1:34, sep = '')),], aes(x= variable, y = value, 
+ggplot(ma_offense[variable %in% c(paste("V", 1:(34*2), sep = '')),], aes(x= variable, y = value, 
                        group = team_id, col = team_id)) + geom_line() + facet_wrap(~ team_id, ncol = 4)
 ```
 
 ```{r}
 ma_defense <- data.table(melt(model_data$a_defense))
 
-ggplot(ma_defense[variable %in% c(paste("V", 1:34, sep = '')),], aes(x= variable, y = value, 
+ggplot(ma_defense[variable %in% c(paste("V", 1:(34*2), sep = '')),], aes(x= variable, y = value, 
                        group = team_id, col = team_id)) + geom_line() + facet_wrap(~ team_id, ncol = 4)
 
   
 ```
 
-# Fit model
+# Fit dynamic Skellam model on simulated data
 
 ```{r}
-fullrun <- 1
+fullrun <- 0
 
 if(fullrun) {
 stanfit_sim_skellam <- stan(
-  file = "models\\skellam_dynamic.stan",
+  file = "models/skellam_dynamic.stan",
   data = model_data,
   chains = 4, 
-  warmup = 100, 
+  warmup = 200, 
   init_r = 0.1, # instead of 2
-  iter = 250,
+  iter = 500,
   cores = 4,
   control = list(adapt_delta = 0.95)
   )
-  saveRDS(stanfit_sim_skellam, "FITS\\skellam_dynamic_sim.rds")
+  saveRDS(stanfit_sim_skellam, "FITS/skellam_dynamic_sim.rds")
 } 
 ```
 
 # Analyse results
 
 ```{r}
-stanfit_sim_skellam <- readRDS("FITS\\skellam_dynamic_sim.rds")
+stanfit_sim_skellam <- readRDS("FITS/skellam_dynamic_sim.rds")
 print(stanfit_sim_skellam, c("constant_mu", "home_advantage", "mixing_proportion"))
 ```
+
+# Compare the estimated team abilities with the true team abilities
 
 ```{r}
 sims <- extract(stanfit_sim_skellam)

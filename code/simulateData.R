@@ -37,7 +37,7 @@ Simulate_static_ZPD_data <- function(seed, par_list){
       for(j in 1:nteams){
         if(i != j) {
           art_turf_advantage <- 0
-          if(runif(1, 0, 1) <= mixing_proportion){ # we voegen "at random" draws toe
+          if(runif(1, 0, 1) <= mixing_proportion){ # "at random" draws are added
             ngames <- ngames + 1
             zif_count <- zif_count + 1
             goal_difference[ngames] <- 0
@@ -89,27 +89,24 @@ Simulate_dynamic_ZPD_data <- function(seed, par_list){
   nteams <- par_list$nteams
   offense_sigma <- par_list$offense_sigma
   defense_sigma <- par_list$defense_sigma
-  # const_mu en home_advantage zetten we vast op 0 en 0.4, net als mixing proportion
   mixing_proportion <- par_list$mixing_proportion
   mu_const <- par_list$mu_const
   home_advantage <- par_list$home_advantage
   art_turf_vec <- par_list$art_turf_vec 
   hyper_variance <- par_list$hyper_variance
   
-  # heeft elk team een initiele offense en een defense ability
-  # die trekken we uit de prior dist
+  # each team we give an initial offense and defense ability
+  # these abilities are drawn from the prior distribution
   offense_vec <- rnorm(nteams, mean = 0, sd = offense_sigma)
   defense_vec <- rnorm(nteams, mean = 0, sd = defense_sigma)
   
-  # elk team heeft een variance
-  # de team variance is getrokken uit een halfnormaal verdeling met vaste hyper_variance (0.1).
-  # de team variance geldt zowel voor de offense als de defense
+  # elk team has a variance for the random walk
+  # we draw each team's variance from a half normal distribution with fixed hyper_variance (0.1).
+  
+  # the team variance holds for both the time evolution of the offense and defense abilities
   team_variance_vec <- abs(rnorm(nteams, mean = 0, sd = hyper_variance))
-  
-  # we trekken voor zowel de offense als de defense een draw, en updaten de abilities
-  
-  # we hebben nu een matrix a_defense[week][team] en a_offense[week][team]
-  
+
+  # These are filled with for each team and week its defense / offense ability  
   a_defense <- data.frame()
   a_offense <-  data.frame()
   # generate time series of defense and offense evolution
@@ -136,8 +133,8 @@ Simulate_dynamic_ZPD_data <- function(seed, par_list){
   home_week <- c()
   away_week <- c()
   
-  # samen met mixing proportion kunnen we nu voor elke round (sample without replacement?)
-  # voor elke pairup twee poisson draws of een zero draw trekken
+  # We draw for each playing round, for each pairing of teams
+  # two poisson counts OR with probability mixing_proportion we set the goal difference at zero (draw)
 
   w <- 1 # week number
   g <- 1 # game number
@@ -168,8 +165,6 @@ Simulate_dynamic_ZPD_data <- function(seed, par_list){
   id_lut <- data.table(1:nteams, paste("Team", 1:nteams))
   setnames(id_lut, "V1", "home_team_id" )
   setnames(id_lut, "V2", "HomeTeam" )
-  # prev_perf zetten we gewoon op 0
-  # deze dataset kunnen we op gaan fitten
 
   model_data <- list(
     n_teams = length(unique(home_team_id)),
@@ -180,7 +175,7 @@ Simulate_dynamic_ZPD_data <- function(seed, par_list){
     home_week = home_week,
     away_week = away_week,
     goal_difference = goal_difference,
-    prev_perf = rep(0, nteams),
+    prev_perf = rep(0, nteams),   # we set prev_perf equal to zero
     id_lut = id_lut,
     n_games_pred = 9,
     home_team_pred = home_team_id[1:9],
