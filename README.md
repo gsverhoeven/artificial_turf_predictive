@@ -1,4 +1,4 @@
-Stancon Helsinki 2018 submission.
+Stancon Helsinki 2018 resubmission after reviewer feedback.
 
 Requirements:
 Rstudio and miktex installed.

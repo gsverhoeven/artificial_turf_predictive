@@ -20,13 +20,13 @@ knitr::opts_chunk$set(cache=FALSE)
 This Notebook contains the following analyses:
 
 * MCMC diagnostics
-  * screening for high Rhat's / low effective sample sizes.
-  * MCMC error and run consistency
+    * screening for high Rhat's / low effective sample sizes.
+    * MCMC error and run consistency
 * Dot plots of fitted model parameters with credible (HPDI) intervals
 * Analysis of the DM-statistic
 * Bookmaker odds
-  * Predictive quality (using RPS) over time
-  * Longshot bias: Model calibration for low probability events
+    * Predictive quality (using RPS) over time
+    * Longshot bias: Model calibration for low probability events
 * Model checking (comparing average RPS between models by various strata, including over time)
 * Appendix: Ranked probability score
 
