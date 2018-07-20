@@ -86,7 +86,7 @@ ggplot(ma_defense[variable %in% c(paste("V", 1:(34*2), sep = '')),], aes(x= vari
 # Fit dynamic Skellam model on simulated data
 
 ```{r}
-fullrun <- 0
+fullrun <- 1
 
 if(fullrun) {
 stanfit_sim_skellam <- stan(
