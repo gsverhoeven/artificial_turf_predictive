@@ -44,10 +44,9 @@ source("code/ReadfitsandCalculateRPS.R")
 source("code/FitOneStepAhead.R")
 source("code/ReadfitsandExtractCoefs.R")
 
-toggle_static <- 0
 ```
 
-# Read & prep Eredivisie dataset
+# Read & further prep Eredivisie dataset
 
 `NL_ALL` contains all data for 2000-2018.
 
@@ -110,7 +109,7 @@ Together, this makes for 608 out-of-sample match predictions where we can compar
 A technical issue is that we need to think carefully about new teams in t+1. They don't have parameters yet. Problem: team_ids in sample fitting don't match the prediction team ids.
 We solve this by generating matching id's during creation of model_Data.
 
-# Out of sample predictions: results for seasons 2015/2016 and 2016/2017
+# Fit all models using Stan
 
 This is the part where all the MCMC work gets done.
 Fit all models in `model_list` with fitting parameter settings fit_pars.
@@ -175,7 +174,7 @@ model_list <- data.table(read.csv2("models/model_list.csv"))
 The no pooling model needs an increased adapt_delta to silence all warnings during sampling.
 All models are now "warning" free from Stan.
 
-# extract coefficients from model fits
+# Extract coefficients from model fits
 
 We're interested in all "global" (i.e. non-team specific) parameters.
 So constant_mu, home_advantage, artificial_turf_advantage etc.

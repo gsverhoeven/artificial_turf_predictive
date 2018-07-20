@@ -171,7 +171,7 @@ Finally, we model the variances $\sigma_i$ of the separate time series (two for 
 
 \begin{equation} \sigma_{i} \sim HalfNormal(0, \tau) \end{equation}
 
-This has the effect of shrinking the variances somewhat towards zero, preventing overfitting by smoothing the latent ability parameters estimates [@kharratzadeh_hierarchical_2017]. See also the discussion on partial pooling in the previous paragraph.
+This has the effect of shrinking the variances somewhat towards zero, preventing overfitting by smoothing the latent ability parameters estimates [@kharratzadeh_hierarchical_2017]. See also the discussion on partial pooling in the previous paragraph. For the defense abilities $\beta_{it}$ a similar set of equations (with equal priors) is used, with the parameters $\sigma_{0}$, $\sigma_i$ and $\tau$ assumed equal for both attack and defense parameters.
 
 For the Skellam model, a more parsimonious model variant can be obtained by using a single team ability parameter $\theta_{it}$ ("Strength") instead of $\alpha_{it}$ and $\beta_{it}$.
 
