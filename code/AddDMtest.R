@@ -13,7 +13,7 @@ AddDMtest <- function(result, rps_data, ref_model_nr = 12){
   setkey(rps_data, row_id)
   e1 <- rps_data[model_nr == ref_model_nr & !is.na(rps_vec), ]$rps_vec 
   # run dm.test
-  for(i in 1:nrow(result)){
+  for(i in result$model_nr){
     e2 <- rps_data[model_nr == i & !is.na(rps_vec), ]$rps_vec 
     if(i != ref_model_nr) {dm_res <- dm.test(e1, e2, h = 1, power = 1, alternative = "two.sided")
       result <- result[model_nr == i, DMstat := round(dm_res$statistic, 3)]

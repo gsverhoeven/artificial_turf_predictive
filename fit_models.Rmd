@@ -7,9 +7,9 @@ output:
 toc_depth: 3
 ---
 
-```{r setup, include=FALSE} 
-rm(list=ls())
-knitr::opts_chunk$set(cache=FALSE) 
+```{r setup, include = FALSE} 
+rm(list = ls())
+knitr::opts_chunk$set(cache = FALSE) 
 ```
 
 # Summary
@@ -24,6 +24,7 @@ library(ggplot2)
 library(rstan)
 library(cowplot)
 library(forecast)
+library(stringr)
 
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
@@ -39,6 +40,7 @@ source("code/MakeEPLPlotAbility.R")
 source("code/games_predicted_vs_actual_intervals.R")
 source("code/ppc_coverage_plot.R")
 source("code/calc_rps_scores.R")
+source("code/rankProbScore.R")
 source("code/odds_to_probability.R")
 source("code/ReadfitsandCalculateRPS.R")
 source("code/FitOneStepAhead.R")
@@ -163,8 +165,8 @@ if(fullrun){
                                 stanfit_include_pars = unlist(split_string),
                                 fitpars = fit_pars)
   }
-  saveRDS(osa_res, "output/20180405 osa_res.rds")
-} else {osa_res <- readRDS("output/20180405 osa_res.rds")}
+  saveRDS(osa_res, "output/20180825 osa_res.rds")
+} else {osa_res <- readRDS("output/20180825 osa_res.rds")}
 
 # re-read model_list to include non-active models as well
 model_list <- data.table(read.csv2("models/model_list.csv"))
@@ -203,9 +205,9 @@ if(read_fit_coefs){
   #saveRDS(coef_res, "output/20180202 coef_res.rds")
   tidy_coef_res <- tidyCoefs(coef_res, model_list_tmp)
   # use this table in the manuscript
-  saveRDS(tidy_coef_res, "output/tidy_coef_res.rds")
+  saveRDS(tidy_coef_res, "output/20180828 tidy_coef_res.rds")
 
-} else {tidy_coef_res <- readRDS("output/tidy_coef_res.rds")}
+} else {tidy_coef_res <- readRDS("output/20180828 tidy_coef_res.rds")}
 
 
 ```
@@ -235,9 +237,9 @@ if(read_rhat_neff){
   #saveRDS(rhat_neff_res, "output/20180323 rhat_neff_res.rds")
   tidy_rhat_neff_res <- tidyCoefs(rhat_neff_res, model_list_tmp)
   # use this table in the manuscript
-  saveRDS(tidy_rhat_neff_res, "output/tidy_rhat_neff_res.rds")
+  saveRDS(tidy_rhat_neff_res, "output/20180828 tidy_rhat_neff_res.rds")
 
-} else {tidy_rhat_neff_res <- readRDS("output/tidy_rhat_neff_res.rds")}
+} else {tidy_rhat_neff_res <- readRDS("output/20180828 tidy_rhat_neff_res.rds")}
 
 
 ```
@@ -259,11 +261,13 @@ if(fullrun){
     if(i == 1){NL_ALL_PRED <- CombineDataWithPredictions(NL_ALL,
                                                  fit_pars,
                                                  osa_res,
-                                                 model_nr = i)
+                                                 model_nr = model_list[i]$model_nr,
+                                                 osa_i = i)
     } else{NL_ALL_PRED <- rbind(NL_ALL_PRED,CombineDataWithPredictions(NL_ALL,
                                                  fit_pars,
                                                  osa_res,
-                                                 model_nr = i)) 
+                                                 model_nr = model_list[i]$model_nr,
+                                                 osa_i = i)) 
     }
   }
  
@@ -281,13 +285,13 @@ if(fullrun){
                            prob_loss = 1/3)
   
   # function to add the odds as model to NL_ALL_PRED table
-  addOddsAsModel <- function(prediction_table, converted_odds){
+  addOddsAsModel <- function(prediction_table, converted_odds, new_model_nr){
     # we need a template
     prediction_table_new <- prediction_table[model_nr == 1,]
     # sort matches as in converted_odds
     setkey(prediction_table_new, Date,  WHH, WHD, WHA)
     
-    new_model_nr <- max(prediction_table$model_nr) + 1
+    #new_model_nr <- max(prediction_table$model_nr) + 1
     prediction_table_new <- prediction_table_new[, model_nr := new_model_nr]
     dropcols <-  c("rps_vec", "p_win", "p_draw", "p_loss")
     prediction_table_new <- prediction_table_new[, !(colnames(prediction_table_new) %in% dropcols), with = F]
@@ -309,17 +313,17 @@ if(fullrun){
   }
   
   # add WH and Bet365 as models to NL_ALL_PRED
-  NL_ALL_PRED <- addOddsAsModel(NL_ALL_PRED, WH_probs)
-  NL_ALL_PRED <- addOddsAsModel(NL_ALL_PRED, bet365_probs)
-  NL_ALL_PRED <- addOddsAsModel(NL_ALL_PRED, Equal_prob_probz)
+  NL_ALL_PRED <- addOddsAsModel(NL_ALL_PRED, WH_probs, new_model_nr = 11)
+  NL_ALL_PRED <- addOddsAsModel(NL_ALL_PRED, bet365_probs, new_model_nr = 12)
+  NL_ALL_PRED <- addOddsAsModel(NL_ALL_PRED, Equal_prob_probz, new_model_nr = 13)
   
   # remove the four matches without prediction also from betting odds "models"
   matches_wo_preds <- NL_ALL_PRED[is.na(rps_vec), .N, .(matchKey)]$matchKey
   
   NL_ALL_PRED <- NL_ALL_PRED[, has_pred := 1]
   NL_ALL_PRED <- NL_ALL_PRED[matchKey %in% matches_wo_preds, has_pred := 0]
-saveRDS(NL_ALL_PRED, file = "Output/20180406 NL_ALL_PRED_w_odds.rds")
-} else {NL_ALL_PRED <- readRDS("Output/20180406 NL_ALL_PRED_w_odds.rds")}
+saveRDS(NL_ALL_PRED, file = "Output/20180828 NL_ALL_PRED_w_odds.rds")
+} else {NL_ALL_PRED <- readRDS("Output/20180828 NL_ALL_PRED_w_odds.rds")}
 ```
 
 At this point, NL_ALL_PRED has rps scores for all 608 predicted matches for all models, including the betting odds of Bet365 and William Hill.
@@ -349,7 +353,7 @@ actual_scorez <- Convert_actual_to_win_draw_loss_vector(NLodds$FTHG - NLodds$FTA
 
 result_WH <- data.table(model_nr = 11, name = "William_hill odds", stan_file = NA, 
                              short_name = "WH_odds", include_pars = NA, dist = "Benchmark", ata = NA,
-                             ha = NA, part_pool = NA, n_ability = NA, zif = NA, extract_pars = NA, 
+                             ha = NA, part_pool = NA, n_ability = NA, zif = NA, mu = NA, extract_pars = NA, 
                              active = 0, aRPS = NA, N_pred = NA)
 
 result_WH$aRPS <- mean(NL_ALL_PRED[model_nr == 11 & !is.na(rps_vec),]$rps_vec)
@@ -357,7 +361,7 @@ result_WH$N_pred <- nrow(NL_ALL_PRED[model_nr == 11 & !is.na(rps_vec),])
 
 result_Bet365 <- data.table(model_nr = 12, name = "Bet365 odds", stan_file = NA, 
                              short_name = "B365_odds", include_pars = NA, dist = "Benchmark", ata = NA,
-                             ha = NA, part_pool = NA, n_ability = NA, zif = NA, extract_pars = NA, 
+                             ha = NA, part_pool = NA, n_ability = NA, zif = NA, mu = NA, extract_pars = NA, 
                              active = 0, aRPS = NA, N_pred = NA)
 
 result_Bet365$aRPS <- mean(NL_ALL_PRED[model_nr == 12 & !is.na(rps_vec),]$rps_vec)
@@ -365,7 +369,7 @@ result_Bet365$N_pred <- nrow(NL_ALL_PRED[model_nr == 12 & !is.na(rps_vec),])
 
 result_Equal_prob <- data.table(model_nr = 13, name = "Equal probability odds", stan_file = NA, 
                              short_name = "Equal_prob_odds", include_pars = NA, dist = "Benchmark", ata = NA,
-                             ha = NA, part_pool = NA, n_ability = NA, zif = NA, extract_pars = NA, 
+                             ha = NA, part_pool = NA, n_ability = NA, zif = NA, mu = NA, extract_pars = NA, 
                              active = 0, aRPS = NA, N_pred = NA)
 
 result_Equal_prob$aRPS <- mean(NL_ALL_PRED[model_nr == 13 & !is.na(rps_vec),]$rps_vec)
@@ -393,7 +397,7 @@ result <- AddDMtest(result, NL_ALL_PRED, ref_model_nr = 1) # t-dist
 # Skellam no zif is base model 
 result <- AddDMtest(result, NL_ALL_PRED, ref_model_nr = 7) # skellam no-zif
 
-saveRDS(result, file = "output/20180406 average RPS by model.rds")
+saveRDS(result, file = "output/20180828 average RPS by model.rds")
 ```
 
 One of the assumptions when comparing two prediction error time series, is that there is no serial (auto) correlation. Since here the two vectors are Ranked probability scores of matches between different teams, we expect that this assumption holds. We test this for one of the models. 

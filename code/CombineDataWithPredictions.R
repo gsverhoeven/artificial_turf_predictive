@@ -1,7 +1,7 @@
 CombineDataWithPredictions <- function(NL_ALL = NL_ALL, 
                                        fit_pars = fit_pars,
                                        osa_res = osa_res,
-                                       model_nr){
+                                       model_nr, osa_i){
 
   start_round <- fit_pars$start_round
   end_round <- fit_pars$end_round
@@ -16,14 +16,14 @@ CombineDataWithPredictions <- function(NL_ALL = NL_ALL,
                                             NL_ALL[round == (end_round + nshifts_start + shift)]) 
     data <- NL_ALL[round == (end_round + nshifts_start + shift)]
     # prediction 
-    predictions <- merge(osa_res[[model_nr]][[6]][[shift + 1]], 
-                         osa_res[[model_nr]][[7]][[shift + 1]],
+    predictions <- merge(osa_res[[osa_i]][[6]][[shift + 1]], 
+                         osa_res[[osa_i]][[7]][[shift + 1]],
                          by = "game_id")
     predictions <- data.table(predictions, 
                               home_team_id = model_data$home_team_pred,
                               away_team_id = model_data$away_team_pred,
                               goal_difference = model_data$pred_goal_difference,
-                              rps_vec = osa_res[[model_nr]][[1]][rps_index:(rps_index + 
+                              rps_vec = osa_res[[osa_i]][[1]][rps_index:(rps_index + 
                                                                               length(model_data$pred_goal_difference)-1)])
     rps_index <- rps_index + length(model_data$pred_goal_difference)
     
