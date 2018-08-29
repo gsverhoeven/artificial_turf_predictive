@@ -93,15 +93,15 @@ NL_ALL <- NL_ALL[, row_id := 1:nrow(NL_ALL)]
 ```
 
 ```{r echo = FALSE}
-result_by_model <- readRDS("output/20180406 average RPS by model.rds")
-tidy_coef_res <- readRDS("output/tidy_coef_res.RDS")
+result_by_model <- readRDS("output/20180828 average RPS by model.rds")
+tidy_coef_res <- readRDS("output/20180828 tidy_coef_res.RDS")
 
-tidy_rhat_neff_res <- readRDS("output/tidy_rhat_neff_res.rds")
+tidy_rhat_neff_res <- readRDS("output/20180828 tidy_rhat_neff_res.rds")
 
 # rename variable for plotting
 tidy_coef_res <- tidy_coef_res[L1 == "b_home", L1 := "home_advantage"]
 
-NL_ALL_PRED <- readRDS("Output/20180406 NL_ALL_PRED_w_odds.rds")
+NL_ALL_PRED <- readRDS("Output/20180828 NL_ALL_PRED_w_odds.rds")
 ```
 
 ```{r}
@@ -307,7 +307,7 @@ res <- result_by_model[res]
 #res
 
 # use in manuscript
-saveRDS(res, "output/res_match_type.rds")
+saveRDS(res, "output/20180828 res_match_type.rds")
 ```
 
 As a benchmark, we also plot the odds-derived predictions, as well as the before mentioned equal-probability (win, draw, loss) uninformed model.
@@ -335,7 +335,7 @@ res_upper_lower <- res_upper_lower[, ul_type_name := "Upper / Upper"]
 res_upper_lower <- res_upper_lower[upper_lower_type == 1, ul_type_name := "Upper / Lower"]
 res_upper_lower <- res_upper_lower[upper_lower_type == 0, ul_type_name := "Lower / Lower"]
 
-saveRDS(res_upper_lower, "output/res_upper_lower.RDS")
+saveRDS(res_upper_lower, "output/20180828 res_upper_lower.RDS")
 ```
 
 We first compare the base model (with home advantage and partial pooling) with odds-based predictions, as well as models that leave out these two elements. 
@@ -455,7 +455,7 @@ res_upper_lower_at[, upper_lower_art_turf_type := paste(upper_lower_type, "at=",
 setkey(res_upper_lower_at, model_nr)
 setkey(result_by_model, model_nr)
 res_upper_lower_at <- result_by_model[res_upper_lower_at]
-saveRDS(res_upper_lower_at, "output/res_upper_lower_at.RDS")
+saveRDS(res_upper_lower_at, "output/20180828 res_upper_lower_at.RDS")
 ```
 
 
@@ -518,7 +518,7 @@ res_time <- NL_ALL_PRED[, .(arps = mean(rps_vec, na.rm = T),
 setkey(res_time, model_nr)
 setkey(result_by_model, model_nr)
 res_time <- result_by_model[res_time]
-saveRDS(res_time, "output/res_time.rds")
+saveRDS(res_time, "output/20180828 res_time.rds")
 ```
 
 

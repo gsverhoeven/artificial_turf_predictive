@@ -43,7 +43,7 @@ options(mc.cores = parallel::detectCores())
 
 ```{r results = 'hide'}
 # Toggle MCMC sampling on or off
-fullrun <- 1
+fullrun <- 0
 ```
 
 
@@ -216,21 +216,21 @@ All scripts for this paper, including the paper itself will become available on 
 Our goal is to compare various models on out-of-sample predictive accuracy (forecasting). The motivation for our approach is that out-of-sample evidence for the artificial turf advantage is more convincing than in-sample evidence. For this approach, we face a trade-off in the choice which data we use to estimate the parameters ("in-sample"), and which data to use for out-of-sample prediction. 
 
 ```{r echo = FALSE}
-result_by_model <- readRDS("output/20180406 average RPS by model.rds")
+result_by_model <- readRDS("output/20180828 average RPS by model.rds")
 
-tidy_coef_res <- readRDS("output/tidy_coef_res.RDS")
+tidy_coef_res <- readRDS("output/20180828 tidy_coef_res.RDS")
 # rename variable for plotting
 tidy_coef_res <- tidy_coef_res[L1 == "b_home", L1 := "home_advantage"]
 
-NL_ALL_PRED <- readRDS("Output/20180406 NL_ALL_PRED_w_odds.rds")
+NL_ALL_PRED <- readRDS("Output/20180828 NL_ALL_PRED_w_odds.rds")
 
 #tidy_rhat_neff_res <- readRDS("output/tidy_rhat_neff_res.rds")
 
 # model checking
-res <- readRDS("output/res_match_type.rds")
-res_upper_lower <- readRDS("output/res_upper_lower.RDS")
+res <- readRDS("output/20180828 res_match_type.rds")
+res_upper_lower <- readRDS("output/20180828 res_upper_lower.RDS")
 #res_upper_lower_at <- readRDS("output/res_upper_lower_at.RDS")
-res_time <- readRDS("output/res_time.RDS")
+res_time <- readRDS("output/20180828 res_time.RDS")
 ```
 
 The artificial turf advantage effect was reported using data from the three most recent complete seasons (2014/2015 up to 2016/2017) [@van_ours_artificial_2017]. Ideally, we would like to forecast match outcomes for these three seasons. However, we also need data to estimate the parameters, and to estimate the artficial turf advantage, this requires sufficient in-sample matches that satisfy the ATA conditions. Therefore, we decided to use the last four seasons of data (see also Figure 1), and decide (somewhat arbitrarily) to use two seasons worth of data (612 matches) to estimate the parameters, and use an expanding window to obtain one-step-ahead forecasts for the remaining two seasons (612 matches). 
