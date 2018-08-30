@@ -1,5 +1,5 @@
 ---
-title: "Artificial Turf Advantage and Predictive Accuracy in Dutch Soccer"
+title: "Artificial Turf Advantage and Predictive Accuracy in Dutch Football"
 author: "Gertjan Verhoeven"
 institute: |
   | Data Scientist at Dutch Healthcare Authority
@@ -90,9 +90,9 @@ You'll find:
 
 - My StanCon visit is paid for by my employer (the Dutch Healthcare Authority)
 
-- Builts on work presented at first StanCon by Milad Kharratzadeh, as well as work by Ben Torvaney (https://github.com/Torvaney/karlis-ntzoufras-reproduction)
+- Builts on work presented at first StanCon by Milad Kharratzadeh, as well as work by Ben Torvaney (https://github.com/Torvaney/karlis-ntzoufras-reproduction) and Rutger Lit 
 
-# About Dutch Soccer
+# About Dutch Football
 
 ![European Championship 1988 Dutch Team](images/ek_1988.jpg)
 
@@ -139,6 +139,8 @@ You'll find:
     $Y_{ijt} \sim Skellam(\lambda_{it}, \lambda_{jt}) \Leftrightarrow 
     Y_{ijt} \sim Poisson(\lambda_{it}) - Poisson(\lambda_{jt})$
 
+`real skellam_lpmf( ... )`
+`real skellam_rng( ... )`
 
 # Model details
 
@@ -153,6 +155,7 @@ You'll find:
     $\alpha_{it} = \alpha_{i, t-1} + \eta_{it}$
     
     $\eta_{it} \sim Normal(0,\sigma_{it})$
+- Priors weakly informative based on typical n_goals scored
 
 # The Core of Modern Statistical Workflow 
 
@@ -221,6 +224,89 @@ calculate_rps(rbind(c(0.25, 0.5, 0.25),
 ```
 
 
+# Ranked Probability Score is distance sensitive
+
+```{r}
+cat_label <- factor(c("Win", "Draw", "Loss"), 
+                    levels = c("Win", "Draw", "Loss")) # specify order
+outcome_pdf <- c(0, 0, 1)
+pred_pdf <- c(0.2, 0.4, 0.4)
+
+df <- data.frame(cat_label, observed_PDF = outcome_pdf, forecast_PDF = pred_pdf)
+df <- melt(df)
+
+gp <-ggplot(df, aes(x = cat_label, y = value, group = variable, fill = variable)) +
+ # geom_line(size = 1) + 
+  geom_col(size = 1, position = position_dodge(), width = 0.2) + ylab("Probability density") + 
+  xlab("Ordered Match Outcome") +
+  theme_classic()
+
+```
+
+```{r}
+cat_label <- factor(c("Win", "Draw", "Loss"), 
+                    levels = c("Win", "Draw", "Loss")) # specify order
+outcome_pdf <- c(0, 0, 1)
+pred_pdf <- c(0.35, 0.25, 0.4)
+
+df <- data.frame(cat_label, observed_PDF = outcome_pdf, forecast_PDF = pred_pdf)
+df <- melt(df)
+
+gp2 <-ggplot(df, aes(x = cat_label, y = value, group = variable, fill = variable)) +
+ # geom_line(size = 1) + 
+  geom_col(size = 1, position = position_dodge(), width = 0.2) + ylab("Probability density") + 
+  xlab("Ordered Match Outcome") +
+  theme_classic()
+
+```
+
+```{r}
+cat_label <- factor(c("Win", "Draw", "Loss"), 
+                    levels = c("Win", "Draw", "Loss")) # specify order
+outcome_cdf <- c(0.25, 0.6, 1)
+pred_cdf <- c(0.35, 0.6,  1)
+
+df <- data.frame(cat_label, modelA_CDF = outcome_cdf, modelB_CDF = pred_cdf)
+df <- melt(df)
+
+gp3 <- ggplot(df, aes(x = cat_label, y = value, group = variable, col = variable)) +
+  geom_ribbon(aes(x = cat_label, ymax = value),ymin = 0, alpha = 0.3, linetype=0) + 
+  geom_ribbon(data=subset(df, variable == "forecast_CDF" & cat_label != "Win"), aes(x = cat_label, ymax = value),ymin = 0, fill = "white", linetype=0) + 
+  geom_line(size = 1) + 
+  geom_point(size = 3) + ylab("Cumulative probability density") + 
+  xlab("Ordered Match Outcome") +
+  theme_classic()
+
+```
+
+```{r, fig.height= 4, fig.width= 8}
+library(cowplot)
+
+left_part <- plot_grid(gp, gp2, ncol = 1)
+composite <- plot_grid(left_part, gp3, labels = c("A", "B"))
+composite
+```
+
+# RPS for Skellam model with and without artificial turf
+
+```{r}
+tmp_df <- dcast(NL_ALL_PRED[model_nr %in% c(3,10) & has_pred == 1 & season %in% c(16,17), .(row_id, model_nr, rps_vec)],
+      row_id ~ model_nr)
+tmp_df <- tmp_df[, diff := `3` - `10`]
+gp <- ggplot(tmp_df, aes(x = `3`, y = `10`)) + geom_point() +
+  xlab("Skellam model without ATA") + ylab("SKellam model with AT") +
+  ggtitle("Rank Probability Score")
+```
+
+```{r}
+gp2 <- ggplot(tmp_df, aes(x = diff)) + geom_histogram() +
+  geom_vline(xintercept = 0, col = "red", linetype = 2) + 
+  geom_vline(xintercept = mean(tmp_df$diff), col = "blue") +
+  xlab("RPS diffference")
+
+plot_grid(gp, gp2, labels = c("A", "B"))
+```
+
 # Results
 
 ```{r echo = FALSE}
@@ -255,12 +341,15 @@ gp2 <- ggplot(tidy_coef_res[model_nr %in% c(3, 10) & L1 %in% c("home_advantage",
 plot_grid(gp1, gp2, labels = c("A", "B"))
 ```
 
+
+
 # Summary
 
 - Implemented dynamic Skellam model in Stan
 - Models using data on goals scored do not beat bookies but come close
 - Artificial Turf Advantage (ATA) does not improve forecasts
 - Evidence for a large effect of ATA is not strong
+- Is comparing predictive accuracy the best way to learn about the DGP?
 
 # Thanks!
 
